@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -6,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#030712">
   <meta name="color-scheme" content="dark">
-  <title>سند V17 — العيون الشاملة للمكفوفين</title>
+  <title>سند V19 — المساعد البصري الشامل للمكفوفين</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
@@ -17,56 +16,37 @@
       -webkit-user-select: none; user-select: none;
       -webkit-tap-highlight-color: transparent; touch-action: manipulation;
     }
-    #main-screen { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
-    #top-bar {
-      flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;
-      padding: calc(env(safe-area-inset-top) + 6px) 8px 6px;
-      background: #030712; border-bottom: 1px solid #1f2937; z-index: 30;
+    #main-screen {
+      height: 100vh; height: 100dvh; min-height: 0; overflow: hidden;
+      display: flex; flex-direction: column; background: #030712;
     }
-    #top-bar button {
-      min-height: 46px; padding: 6px 4px; border-radius: 10px;
-      font-size: 13px; font-weight: 700; display: flex; align-items: center;
-      justify-content: center; gap: 4px; text-align: center;
+    .corner-row {
+      flex: 0 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+      padding: 8px; background: #030712; z-index: 30;
     }
-    #mode-strip {
-      flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px;
-      padding: 6px 8px; background: #0b1120; border-bottom: 1px solid #1e293b; z-index: 25;
+    .corner-row-top { padding-top: calc(env(safe-area-inset-top) + 8px); border-bottom: 1px solid #1f2937; }
+    .corner-row-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 12px); border-top: 1px solid #1f2937; }
+    .corner-btn {
+      min-height: 82px; padding: 10px 8px; border-radius: 16px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      font-weight: 800; text-align: center; border-width: 2px; transition: transform .08s, background .15s;
     }
-    #mode-strip button {
-      min-height: 44px; padding: 5px 4px; border-radius: 10px;
-      font-size: 12px; font-weight: 700; border: 1px solid #334155;
-      background: #111827; color: #cbd5e1; transition: all .15s;
-    }
-    #mode-strip button[aria-pressed="true"] {
-      background: #1d4ed8; border-color: #60a5fa; color: #ffffff;
-    }
-    #control-dock {
-      flex: 0 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px;
-      padding: 8px 8px calc(env(safe-area-inset-bottom) + 12px);
-      background: #030712; border-top: 1px solid #1f2937; z-index: 30;
-    }
-    #control-dock button {
-      min-width: 0; min-height: 70px; padding: 8px 5px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 4px; border-radius: 13px;
-      font-size: 14px; line-height: 1.2; font-weight: 700; text-align: center;
-      white-space: normal; overflow-wrap: anywhere;
-    }
-    #control-dock .control-icon { font-size: 1.35rem; line-height: 1; }
-    @media (max-width: 360px) {
-      #control-dock button { min-height: 62px; font-size: 12px; }
-      #mode-strip button { font-size: 11px; min-height: 40px; }
-      #top-bar button { font-size: 12px; min-height: 42px; }
-    }
+    .corner-btn:active { transform: scale(0.97); }
+    .corner-btn .c-title { font-size: 16px; line-height: 1.2; }
+    .corner-btn .c-sub { font-size: 11px; opacity: 0.88; font-weight: 600; }
     @media (max-height: 670px) {
-      #control-dock button { min-height: 58px; padding: 6px 4px; }
-      #mode-strip button { min-height: 38px; }
-      #top-bar button { min-height: 40px; }
+      .corner-btn { min-height: 68px; padding: 6px; }
+      .corner-btn .c-title { font-size: 14px; }
+    }
+    #gesture-pad {
+      position: relative; flex: 1 1 auto; min-height: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 16px 16px 105px; touch-action: none; cursor: pointer;
+      background: radial-gradient(circle at center, #111827 0%, #030712 100%);
     }
     button:focus-visible, input:focus-visible, select:focus-visible {
       outline: 4px solid #60a5fa; outline-offset: -3px;
     }
-    #capture-btn { cursor: pointer; padding-bottom: 118px; padding-top: 38px; }
-    #risk-indicator { font-weight: 800; }
     #settings-screen { justify-content: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     #settings-screen a, #settings-screen button { min-height: 52px; }
     input[type="checkbox"] { width: 25px; height: 25px; flex: 0 0 auto; accent-color: #2563eb; }
@@ -76,13 +56,13 @@
     }
     .settings-step {
       border: 1px solid #374151; border-radius: 16px; padding: 14px;
-      background: rgba(31, 41, 55, .74);
+      background: rgba(31, 41, 55, .78);
     }
     .settings-action { width: 100%; border-radius: 12px; padding: 13px; font-weight: 700; }
-    .risk-danger { color: #fecaca; border-color: #b91c1c; background: rgba(127, 29, 29, .6); }
-    .risk-caution { color: #fde68a; border-color: #b45309; background: rgba(120, 53, 15, .48); }
-    .risk-none { color: #bfdbfe; border-color: #1d4ed8; background: rgba(30, 58, 138, .4); }
-    .risk-unknown { color: #e5e7eb; border-color: #4b5563; background: rgba(31, 41, 55, .75); }
+    .risk-danger { color: #fecaca; border-color: #b91c1c; background: rgba(127, 29, 29, .68); }
+    .risk-caution { color: #fde68a; border-color: #b45309; background: rgba(120, 53, 15, .55); }
+    .risk-none { color: #bfdbfe; border-color: #1d4ed8; background: rgba(30, 58, 138, .48); }
+    .risk-unknown { color: #e5e7eb; border-color: #4b5563; background: rgba(31, 41, 55, .82); }
   </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col">
@@ -91,14 +71,14 @@
   <main id="settings-screen" class="p-4 flex flex-col min-h-screen max-w-xl mx-auto w-full" role="main" aria-labelledby="settings-heading">
     <div class="w-full flex flex-col gap-4 pb-10">
       <h1 id="settings-heading" tabindex="-1" class="text-2xl font-bold text-center text-blue-400">
-        سند V17 — العيون الشاملة المجانية
+        سند V19 — العيون الشاملة للمكفوفين
       </h1>
       <p class="text-sm text-gray-200 leading-relaxed">
-        مشروع إنساني مجاني بالكامل. يجمع بين: <strong>رؤية المكان المحلية بـ 4.4 ميجا فقط</strong> (لتعرف الأبواب، الشبابيك، السلالم، المياه، الرصيف، والأجسام بالخطوات) + <strong>دعم الخادم المجاني المشترك (Cloudflare Worker)</strong> ليحصل الكفيف على الوصف الكامل وفحص الشعر والملابس والسلالم الصاعدة/النازلة والروشتات <strong>دون أن يدفع قرشاً أو يصنع أي مفتاح!</strong>
+        مشروع إنساني مجاني بالكامل. <strong>4 زوايا ضخمة عند حواف الشاشة + مسرح سحب ذكي في المنتصف</strong>، مع محرك قراءة عربي محسّن بالعتبة الموضعية (يقاوم الظلال ويلتقط صورتين ليختار الأوضح ويصحح الورقة المقلوبة)، ومحرك هندسي محلي للمسافة والسلالم والأبواب، ودعم نماذج Gemini 2.5 و 3.x و OpenRouter المجانية.
       </p>
 
       <p id="settings-status" role="status" aria-live="polite"
-         class="rounded-xl border border-blue-800/70 bg-blue-950/30 p-3 text-sm font-medium text-blue-100 min-h-[3rem]">
+         class="rounded-xl border border-blue-800/70 bg-blue-950/40 p-3 text-sm font-medium text-blue-100 min-h-[3rem]">
         اضغط «ابدأ الآن» للعمل فوراً مجاناً.
       </p>
 
@@ -108,36 +88,36 @@
         <span aria-hidden="true">▶ </span>ابدأ الآن (مجاني بالكامل)
       </button>
 
-      <button id="setup-guide-button" type="button" onclick="speakSetupGuide()"
+      <button id="setup-guide-button" type="button" onclick="speakTouchMapGuide()"
               class="settings-action bg-indigo-700 hover:bg-indigo-600 text-white text-base">
-        <span aria-hidden="true">🔊 </span>استمع إلى شرح القدرات الجديدة
+        <span aria-hidden="true">🔊 </span>اسمع خريطة الزوايا والإيماءات
       </button>
 
-      <!-- قسم الذكاء المحلي على الهاتف -->
+      <!-- قسم الأدوات المحلية -->
       <section class="settings-step" aria-labelledby="local-tools-heading">
-        <h2 id="local-tools-heading" class="text-lg font-bold text-emerald-300 mb-3">1. قدرات هاتفك المحلية (دون API وبدون تكلفة)</h2>
+        <h2 id="local-tools-heading" class="text-lg font-bold text-emerald-300 mb-3">1. أدوات التفاعل والرصد المحلية</h2>
         <div class="flex flex-col gap-3 text-sm">
+          <label class="flex items-start gap-3 rounded-xl border border-blue-700/70 bg-blue-950/20 p-3 cursor-pointer">
+            <input id="touch-explore-checkbox" type="checkbox">
+            <span>
+              <strong class="block text-base text-blue-200">الرادار اللمسي بالصوت (لمن لا يستخدم TalkBack)</strong>
+              <span class="text-gray-300">ينطق اسم أي زاوية تمرر إصبعك فوقها قبل تنفيذها. (أوقفه عند استخدام TalkBack).</span>
+            </span>
+          </label>
+
           <label class="flex items-start gap-3 rounded-xl border border-gray-700 p-3 cursor-pointer">
             <input id="live-local-scan-checkbox" type="checkbox" checked>
             <span>
               <strong class="block text-base text-white">رصد الأجسام وتقدير المسافة بالخطوات</strong>
-              <span class="text-gray-300">يرصد الأشخاص والمركبات والأثاث مع تقدير المسافة بالخطوات والأمتار.</span>
+              <span class="text-gray-300">يحسب المسافة بالخطوات والأمتار ويكشف تدرجات السلالم والأبواب واللمعان المائي محلياً.</span>
             </span>
           </label>
 
           <label class="flex items-start gap-3 rounded-xl border border-gray-700 p-3 cursor-pointer">
             <input id="nav-mode-checkbox" type="checkbox" checked>
             <span>
-              <strong class="block text-base text-blue-200">تنبيهات السير المستمرة + فحص ميل الهاتف</strong>
-              <span class="text-gray-300">ينبهك إذا مالت الكاميرا للسماء أو عند الاقتراب من عائق (لا تغني عن العصا).</span>
-            </span>
-          </label>
-
-          <label class="flex items-start gap-3 rounded-xl border border-gray-700 p-3 cursor-pointer">
-            <input id="spatial-audio-checkbox" type="checkbox" checked>
-            <span>
-              <strong class="block text-base text-white">صوت اتجاهي في سماعة الأذن (يمين / يسار / وسط)</strong>
-              <span class="text-gray-300">ينبهك بنغمة في الأذن المطابقة لمكان الجسم.</span>
+              <strong class="block text-base text-white">التنبيهات المستمرة أثناء السير</strong>
+              <span class="text-gray-300">نغمات اتجاهية (يمين/يسار) في السماعة. (لا تغني أبداً عن العصا البيضاء).</span>
             </span>
           </label>
 
@@ -145,33 +125,21 @@
             <input id="auto-torch-checkbox" type="checkbox" checked>
             <span>
               <strong class="block text-base text-white">تشغيل الكشاف تلقائياً في الظلام</strong>
-              <span class="text-gray-300">عند قراءة الورق أو العملة أو فحص الملابس.</span>
+              <span class="text-gray-300">يضيء الفلاش تلقائياً عند قراءة النصوص أو العملة في غرفة مظلمة.</span>
             </span>
           </label>
 
-          <!-- محرك الأبواب والشبابيك والسلالم والمياه المحلي (4.42 ميجا!) -->
-          <div class="rounded-xl border border-emerald-700/70 bg-emerald-950/20 p-3 space-y-2">
-            <strong class="block text-base text-emerald-200">🚪 محرك الأبواب والسلالم والمياه المحلي (4.4 ميجا فقط!)</strong>
-            <p class="text-gray-300 text-xs leading-relaxed">
-              نموذج <strong>SegFormer ADE20K</strong> المضغوط (4.42 ميجابايت تُحفظ مرة واحدة للأبد): يتعرّف محلياً بلا إنترنت لاحقاً على <strong>الباب، الشباك، السلالم، الدرابزين، المياه، الرصيف، الشارع، المرآة، والحوائط!</strong>
-            </p>
-            <button id="load-segformer-btn" type="button" onclick="enableAndLoadSegFormer()"
-                    class="w-full rounded-xl bg-emerald-800 hover:bg-emerald-700 py-3 px-4 font-bold text-sm">
-              🚪 تحميل وتفعيل رؤية الأبواب والسلالم محلياً (4.4 ميجا)
-            </button>
-          </div>
-
-          <!-- قارئ النصوص السريع -->
+          <!-- إعدادات القراءة المحسّنة -->
           <div class="rounded-xl border border-purple-800/70 bg-purple-950/20 p-3 space-y-2">
-            <strong class="block text-base text-purple-200">📖 قارئ النصوص السريع (مع تصحيح الورقة المقلوبة)</strong>
+            <strong class="block text-base text-purple-200">📖 قارئ النصوص المحسّن (عتبة تكيفية + قص الوسط)</strong>
             <p class="text-gray-300 text-xs leading-relaxed">
-              يُحفظ في الهاتف مرة واحدة ولا يعيد التنزيل. وإذا أمسكت الورقة بالمقلوب (180 درجة) يقلبها ويقرأها تلقائياً.
+              تحديد «عربي فقط» يرفع دقة القراءة العربية ويمنع خلط الحروف اللاتينية، ويُحفظ في الهاتف مرة واحدة.
             </p>
             <div class="flex items-center gap-2">
               <label for="ocr-lang-select" class="text-xs font-bold text-gray-200">اللغة:</label>
               <select id="ocr-lang-select" class="flex-1 p-2 bg-gray-800 border border-gray-600 rounded-lg text-sm">
-                <option value="ara+eng">عربي + إنجليزي</option>
-                <option value="ara">عربي فقط (أسرع 40%)</option>
+                <option value="ara">عربي فقط (الأدق والأسرع للنصوص العربية)</option>
+                <option value="ara+eng">عربي + إنجليزي (للأدوية والفواتير المختلطة)</option>
               </select>
             </div>
             <button id="preload-ocr-btn" type="button" onclick="preloadOcrFromSettings()"
@@ -180,40 +148,41 @@
             </button>
           </div>
 
-          <!-- محرك العمق الاختياري -->
-          <div class="rounded-xl border border-cyan-800/70 bg-cyan-950/20 p-3 space-y-2">
-            <strong class="block text-base text-cyan-200">📏 محرك العمق العصبي (Depth Anything V2 — 27 ميجا)</strong>
+          <!-- المحركات العصبية الاختيارية -->
+          <div class="rounded-xl border border-emerald-700/70 bg-emerald-950/20 p-3 space-y-2">
+            <strong class="block text-base text-emerald-200">🚪 محركات الرؤية العصبية الإضافية (اختيارية)</strong>
             <p class="text-gray-300 text-xs leading-relaxed">
-              تقدير ثلاثي الأبعاد لعمق المسار وتغيّر مستوى الأرض وصعود أو نزول السلالم محلياً (مناسب للهواتف المتوسطة والحديثة).
+              يعمل الهاتف فوراً بالمحرك الهندسي الخفيف دون تنزيلها. هذه الأزرار فقط للهواتف المتوسطة والحديثة عبر رابط HTTPS.
             </p>
+            <button id="load-segformer-btn" type="button" onclick="enableAndLoadSegFormer()"
+                    class="w-full rounded-xl bg-emerald-800 hover:bg-emerald-700 py-2.5 px-3 font-bold text-xs">
+              🚪 تحميل نموذج الأبواب والسلالم والمياه (SegFormer — 4.4 ميجا)
+            </button>
             <button id="load-depth-btn" type="button" onclick="enableAndLoadNeuralDepth()"
-                    class="w-full rounded-xl bg-cyan-800 hover:bg-cyan-700 py-3 px-4 font-bold text-sm">
-              📏 تحميل محرك العمق الذكي (27 ميجا — مرة واحدة)
+                    class="w-full rounded-xl bg-cyan-800 hover:bg-cyan-700 py-2.5 px-3 font-bold text-xs">
+              📏 تحميل محرك العمق ثلاثي الأبعاد (Depth Anything — 27 ميجا)
             </button>
           </div>
         </div>
       </section>
 
-      <!-- قسم الخادم المجاني المشترك أو المفتاح الاختياري -->
-      <details class="settings-step">
+      <!-- قسم الخادم المجاني والمفاتيح (بما فيها Gemini 2.5 + 3.x + OpenRouter) -->
+      <details class="settings-step" open>
         <summary class="text-base font-bold text-amber-300" style="min-height:48px; display:flex; align-items:center; cursor:pointer;">
-          2. العيون الكاملة (عبر خادم مجاني للمطور أو مفتاح مجاني)
+          2. الرؤية الكاملة المجانية (Gemini 2.5 و 3.x أو OpenRouter أو Worker)
         </summary>
         <div class="pt-3 flex flex-col gap-3 text-sm">
           <p class="text-gray-200 leading-relaxed">
-            لرؤية تفاصيل دقيقة جداً (هل الشعر مهذب؟ هل القميص به بقعة؟ هل الباب الزجاجي مفتوح؟ وقراءة خط اليد في الروشتات)، يمكنك ربط رابط <strong>Cloudflare Worker مجاني</strong> (للمطور/الجمعيات لخدمة المكفوفين مجاناً) أو إدخال مفتاح Google Gemini / OpenRouter مجاني:
+            لرؤية دقيقة للروشتات، والشعر، والملابس والبقع، والسلم صاعد أم نازل: اربط رابط <strong>Cloudflare Worker المجاني</strong> أو ضع مفتاحاً مجانياً (بدون بطاقة بنكية).
           </p>
-
           <form class="flex flex-col gap-3" onsubmit="saveSettings(event)">
             <label for="proxy-url-input" class="font-bold text-emerald-300">رابط الخادم المجاني (Cloudflare Worker — اختياري):</label>
             <input id="proxy-url-input" type="url" dir="ltr" placeholder="https://sanad-proxy.yourname.workers.dev"
                    class="w-full p-3 bg-gray-800 border border-gray-600 rounded-xl text-white">
 
-            <hr class="border-gray-700 my-1">
-
-            <label for="provider-select" class="font-bold text-gray-100">أو استخدم مفتاحاً مجانياً مباشراً (بدون بطاقة بنكية):</label>
+            <label for="provider-select" class="font-bold text-gray-100">أو مفتاح مجاني مباشر (بدون بطاقة بنكية):</label>
             <select id="provider-select" onchange="onProviderChange()" class="w-full min-h-[50px] p-3 bg-gray-800 border border-gray-600 rounded-xl text-white">
-              <option value="gemini">Google Gemini (مجاني بحساب جوجل)</option>
+              <option value="gemini">Google Gemini (عائلة 2.5 وعائلة 3 — مجاني بحساب جوجل)</option>
               <option value="openrouter">OpenRouter (نماذج :free مجانية)</option>
             </select>
 
@@ -228,9 +197,10 @@
               </a>
             </div>
 
-            <input id="api-key-input" type="password" autocomplete="off" dir="ltr" placeholder="AIza... أو sk-or-v1-... (اختياري)"
+            <input id="api-key-input" type="password" autocomplete="off" dir="ltr" placeholder="AIza... أو sk-or-v1-..."
                    class="w-full p-3 bg-gray-800 border border-gray-600 rounded-xl text-white">
 
+            <label for="model-input" class="font-bold text-gray-200">اختر النموذج:</label>
             <select id="model-input" class="w-full min-h-[50px] p-3 bg-gray-800 border border-gray-600 rounded-xl text-white"></select>
 
             <label class="flex items-start gap-3 rounded-xl border border-gray-700 p-3 cursor-pointer">
@@ -239,10 +209,10 @@
             </label>
 
             <button id="save-button" type="submit" class="settings-action bg-green-800 hover:bg-green-700 text-white">
-              حفظ وتفعيل العيون الكاملة
+              حفظ وتفعيل الرؤية الكاملة
             </button>
             <button type="button" onclick="forgetSavedKey()" class="settings-action bg-red-950 hover:bg-red-900 border border-red-800 text-red-100">
-              حذف الخادم والمفتاح والعودة للمحلي فقط
+              حذف الخادم والمفتاح والعودة للمحلي
             </button>
           </form>
         </div>
@@ -250,124 +220,103 @@
     </div>
   </main>
 
-  <!-- ================= الشاشة الرئيسية ================= -->
-  <div id="main-screen" class="hidden flex-1 flex flex-col">
-    <div id="top-bar" role="toolbar" aria-label="التحكم السريع">
-      <button id="stop-btn" type="button" onclick="stopSpeaking()" aria-label="إيقاف الصوت فوراً"
-              class="bg-red-950 hover:bg-red-900 border border-red-800 text-red-100">
-        <span aria-hidden="true">⏹</span><span>اسكت</span>
+  <!-- ================= الشاشة الرئيسية (4 زوايا ضخمة ثابتة + مسرح لمس وسط) ================= -->
+  <div id="main-screen" class="hidden">
+    <div class="corner-row corner-row-top">
+      <button id="corner-top-right" type="button"
+              data-speak-label="زاوية أعلى اليمين: اقرأ النص. ضغطة مطولة لقراءة العملة المصرية."
+              aria-label="زاوية أعلى اليمين: اقرأ النص. ضغطة مطولة لقراءة العملة."
+              class="corner-btn bg-purple-950 hover:bg-purple-900 border-purple-600 text-purple-100">
+        <span class="c-title">📖 اقرأ النص</span>
+        <span class="c-sub">مطوّلاً: العملة 💵</span>
       </button>
-      <button id="torch-btn" type="button" onclick="toggleTorch()" aria-label="الكشاف"
-              class="bg-amber-950 hover:bg-amber-900 border border-amber-800 text-amber-100">
-        <span aria-hidden="true">🔦</span><span id="torch-label">الكشاف</span>
-      </button>
-      <button id="camera-flip-btn" type="button" onclick="toggleCameraFacing()" aria-label="تبديل الكاميرا للمرآة"
-              class="bg-pink-950 hover:bg-pink-900 border border-pink-800 text-pink-100">
-        <span aria-hidden="true">🪞</span><span id="cam-label">المرآة</span>
-      </button>
-      <button id="settings-btn" type="button" onclick="openSettings()" aria-label="الإعدادات"
-              class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-100">
-        <span aria-hidden="true">⚙️</span><span>الإعدادات</span>
+
+      <button id="corner-top-left" type="button"
+              data-speak-label="زاوية أعلى اليسار: إيقاف الصوت أو الكشاف. ضغطة مطولة لفتح الإعدادات."
+              aria-label="زاوية أعلى اليسار: إيقاف الصوت أو الكشاف. ضغطة مطولة لفتح الإعدادات."
+              class="corner-btn bg-amber-950 hover:bg-amber-900 border-amber-700 text-amber-100">
+        <span class="c-title" id="top-left-title">⏹ اسكت / كشاف 🔦</span>
+        <span class="c-sub">مطوّلاً: الإعدادات ⚙️</span>
       </button>
     </div>
 
-    <div id="mode-strip" role="radiogroup" aria-label="أوضاع الحياة">
-      <button id="mode-walk" type="button" aria-pressed="true" onclick="setLifeMode('walk')">🛣️ الطريق والسلالم</button>
-      <button id="mode-home" type="button" aria-pressed="false" onclick="setLifeMode('home')">🚪 الأبواب والبيت</button>
-      <button id="mode-clothes" type="button" aria-pressed="false" onclick="setLifeMode('clothes')">👔 الملابس والبقع</button>
-      <button id="mode-grooming" type="button" aria-pressed="false" onclick="setLifeMode('grooming')">💇 شعري ومظهري</button>
-    </div>
-
-    <div class="relative flex-1 min-h-0">
+    <div id="gesture-pad" role="button" tabindex="0"
+         data-speak-label="وسط الشاشة: المس مرة لوصف ما حولك، أو اسحب للأعلى للقراءة، ولليسار للسؤال بالصوت، ولليمين لتغيير الوضع، وللأسفل للمسافة."
+         aria-label="وسط الشاشة: المس مرة لوصف المشهد، أو اسحب في أي اتجاه.">
       <video id="camera-preview" autoplay playsinline muted aria-hidden="true"
-             class="absolute top-2 right-2 w-16 h-16 object-cover rounded-lg border border-gray-700 opacity-60 pointer-events-none z-10"></video>
+             class="absolute top-2 right-2 w-14 h-14 object-cover rounded-lg border border-gray-700 opacity-55 pointer-events-none"></video>
 
-      <div class="absolute top-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
-        <div id="local-scanner-badge" class="bg-emerald-950/90 border border-emerald-700 text-emerald-200 text-[11px] font-bold px-2 py-0.5 rounded-full">الأجسام: جارٍ التحضير...</div>
-        <div id="seg-badge" class="bg-teal-950/90 border border-teal-700 text-teal-200 text-[11px] font-bold px-2 py-0.5 rounded-full hidden">أبواب وسلالم محلية: نشط</div>
-        <div id="depth-badge" class="bg-cyan-950/90 border border-cyan-700 text-cyan-200 text-[11px] font-bold px-2 py-0.5 rounded-full hidden">العمق العصبي: نشط</div>
-        <div id="ocr-badge" class="bg-purple-950/90 border border-purple-700 text-purple-200 text-[11px] font-bold px-2 py-0.5 rounded-full hidden">القراءة: محفوظة محلياً</div>
+      <div class="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
+        <div id="local-scanner-badge" class="bg-emerald-950/90 border border-emerald-700 text-emerald-200 text-[11px] font-bold px-2 py-0.5 rounded-full">المسافة والأجسام: جارٍ التحضير...</div>
+        <div id="seg-badge" class="bg-teal-950/90 border border-teal-700 text-teal-200 text-[11px] font-bold px-2 py-0.5 rounded-full hidden">SegFormer: نشط</div>
+        <div id="depth-badge" class="bg-cyan-950/90 border border-cyan-700 text-cyan-200 text-[11px] font-bold px-2 py-0.5 rounded-full hidden">Depth V2: نشط</div>
         <div id="torch-badge" class="bg-amber-950/90 border border-amber-700 text-amber-200 text-[11px] font-bold px-2 py-0.5 rounded-full hidden">الكشاف: مضاء</div>
       </div>
 
       <canvas id="canvas" class="hidden" aria-hidden="true"></canvas>
-      <canvas id="probe-canvas" width="96" height="96" class="hidden" aria-hidden="true"></canvas>
+      <canvas id="probe-canvas" width="160" height="120" class="hidden" aria-hidden="true"></canvas>
 
-      <button id="capture-btn" type="button"
-              aria-label="افحص المشهد الآن. المس مرة واحدة للوصف."
-              class="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 bg-gray-900 active:bg-gray-800 transition-colors">
-        <span id="mode-hero-icon" class="text-5xl" aria-hidden="true">🛣️</span>
-        <span id="mode-hero-title" class="text-xl font-bold text-blue-300">فحص الطريق والسلالم والحفر</span>
-        <span id="nav-hint" class="text-xs text-emerald-300 px-6 text-center font-medium">تنبيهات المسافة بالخطوات نشطة</span>
-        <span class="text-xs text-gray-400 px-6 text-center">المس الشاشة الآن للوصف، أو اختر أداة من الأسفل</span>
-      </button>
+      <span id="mode-hero-icon" class="text-5xl mb-2 pointer-events-none" aria-hidden="true">🛣️</span>
+      <span id="mode-hero-title" class="text-xl font-bold text-blue-300 text-center pointer-events-none">وضع: الطريق والسلالم والحفر</span>
+      <span id="nav-hint" class="text-xs text-emerald-300 mt-1 text-center pointer-events-none">لمسة: وصف شامل • ⬆ قراءة • ⬅ مايك • ➡ وضع • ⬇ مسافة</span>
 
-      <div class="absolute bottom-0 inset-x-0 p-2 pointer-events-none z-20">
-        <div class="bg-gray-950/95 border border-gray-700 p-2.5 rounded-2xl text-center shadow-lg space-y-1.5">
+      <div class="absolute bottom-2 inset-x-2 pointer-events-none">
+        <div class="bg-gray-950/95 border border-gray-700 p-2.5 rounded-2xl text-center shadow-lg space-y-1">
           <p id="risk-indicator" class="hidden border rounded-xl px-3 py-1 text-xs" aria-live="assertive"></p>
           <p id="status-text" role="status" aria-live="polite" class="text-sm font-medium leading-relaxed text-gray-100">
-            سند جاهز. المس الشاشة للوصف، أو اختر أداة من الأسفل.
+            جاهز. المس الوسط لوصف المشهد، أو المس أي زاوية من الأربع حواف.
           </p>
         </div>
       </div>
     </div>
 
-    <div id="control-dock" role="navigation" aria-label="الأدوات السريعة">
-      <button id="read-text-btn" type="button" onclick="readTextSmart()" aria-label="اقرأ النص"
-              class="bg-purple-950 hover:bg-purple-900 border border-purple-800 transition">
-        <span class="control-icon" aria-hidden="true">📖</span><span>اقرأ النص</span>
+    <div class="corner-row corner-row-bottom">
+      <button id="corner-bottom-right" type="button"
+              data-speak-label="زاوية أسفل اليمين: المسافة والمكان. ضغطة مطولة لتبديل الوضع."
+              aria-label="زاوية أسفل اليمين: المسافة والمكان. ضغطة مطولة لتبديل الوضع."
+              class="corner-btn bg-cyan-950 hover:bg-cyan-900 border-cyan-600 text-cyan-100">
+        <span class="c-title">📏 المسافة والمكان</span>
+        <span class="c-sub">مطوّلاً: بدّل الوضع 🔁</span>
       </button>
-      <button id="voice-cmd-btn" type="button" onclick="activateVoiceCommands()" aria-label="تحدث بسؤال أو أمر"
-              class="bg-blue-900 hover:bg-blue-800 border border-blue-600 transition">
-        <span class="control-icon" aria-hidden="true">🎤</span><span>اسأل / أمر</span>
-      </button>
-      <button id="currency-btn" type="button" onclick="recognizeEgyptianCurrency()" aria-label="العملة المصرية"
-              class="bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 transition">
-        <span class="control-icon" aria-hidden="true">💵</span><span>العملة</span>
-      </button>
-      <button id="color-light-btn" type="button" onclick="readColorAndLightLocally()" aria-label="اللون والنور"
-              class="bg-sky-950 hover:bg-sky-900 border border-sky-800 transition">
-        <span class="control-icon" aria-hidden="true">🎨</span><span>اللون والنور</span>
-      </button>
-      <button id="distance-btn" type="button" onclick="measureDistanceNow()" aria-label="المسافة والأبواب والسلالم"
-              class="bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 transition">
-        <span class="control-icon" aria-hidden="true">📏</span><span>المسافة والمكان</span>
-      </button>
-      <button id="repeat-btn" type="button" onclick="repeatLast()" aria-label="أعد الوصف"
-              class="bg-gray-800 hover:bg-gray-700 border border-gray-700 transition">
-        <span class="control-icon" aria-hidden="true">🔁</span><span>أعد الوصف</span>
+
+      <button id="corner-bottom-left" type="button"
+              data-speak-label="زاوية أسفل اليسار: اسأل بالصوت. ضغطة مطولة لمعرفة اللون والنور والملابس."
+              aria-label="زاوية أسفل اليسار: اسأل بالصوت. ضغطة مطولة لمعرفة اللون والنور."
+              class="corner-btn bg-blue-900 hover:bg-blue-800 border-blue-500 text-blue-50">
+        <span class="c-title">🎤 اسأل بالصوت</span>
+        <span class="c-sub">مطوّلاً: اللون والنور 🎨</span>
       </button>
     </div>
   </div>
 
 <script>
-/* ============================================================================
-   رابط الخادم المجاني للمطور (Cloudflare Worker):
-   إذا رفعت worker.js على Cloudflare Workers، الصق رابط الـ Worker هنا بين علامتي التنصيص
-   ليحصل جميع المكفوفين على العيون الكاملة فوراً دون أي مفتاح أو بطاقة بنكية!
-============================================================================ */
+/* ==================== الإعدادات والنماذج (بما فيها Google Gemini 2.5 و 3.x) ==================== */
+// ضع هنا رابط Cloudflare Worker المجاني الخاص بك ليحصل كل المكفوفين على الذكاء الكامل دون أي مفتاح
 const DEFAULT_PUBLIC_PROXY_URL = '';
 
 const LS_KEY = 's3aed_api_key', SS_KEY = 's3aed_api_key_session', LS_PROXY = 's3aed_proxy_url';
 const LS_PROVIDER = 's3aed_provider', LS_MODEL = 's3aed_model', LS_OCR_LANG = 's3aed_ocr_lang';
 const LS_LOCAL_SCAN = 's3aed_local_live_scan', LS_NAV_MODE = 's3aed_nav_mode';
-const LS_SPATIAL = 's3aed_spatial_audio', LS_AUTO_TORCH = 's3aed_auto_torch', LS_LIFE_MODE = 's3aed_life_mode';
+const LS_AUTO_TORCH = 's3aed_auto_torch', LS_LIFE_MODE = 's3aed_life_mode', LS_EXPLORE = 's3aed_touch_explore';
 
 const PROVIDERS = {
   gemini: {
-    defaultModel: 'gemini-3.8-flash',
+    defaultModel: 'gemini-2.5-flash-lite',
     models: {
-      'gemini-3.8-flash': { label: 'Gemini 3.8 Flash — الأدق (مجاني)', thinkingLevel: 'low' },
-      'gemini-3.5-flash-lite': { label: 'Gemini 3.5 Flash-Lite — أسرع وحصة كبيرة', thinkingLevel: 'minimal' },
-      'gemini-3.6-flash': { label: 'Gemini 3.6 Flash — متوازن', thinkingLevel: 'low' }
+      'gemini-2.5-flash-lite': { label: 'Gemini 2.5 Flash-Lite — سريع ومستقر ومجاني', thinkingBudget: 0 },
+      'gemini-2.5-flash':      { label: 'Gemini 2.5 Flash — متوازن (تُحوّل إلى 3.5 Lite بعد 1 ديسمبر)', thinkingBudget: 512 },
+      'gemini-2.5-pro':        { label: 'Gemini 2.5 Pro — عميق (يُحوّل إلى 3.8 Flash بعد 1 ديسمبر)', thinkingBudget: 1024 },
+      'gemini-3.8-flash':      { label: 'Gemini 3.8 Flash — الأحدث والأدق (مجاني)', thinkingLevel: 'low' },
+      'gemini-3.5-flash-lite': { label: 'Gemini 3.5 Flash-Lite — الأسرع وحصة كبيرة', thinkingLevel: 'minimal' },
+      'gemini-3.6-flash':      { label: 'Gemini 3.6 Flash — حديث ومتوازن', thinkingLevel: 'low' }
     }
   },
   openrouter: {
     defaultModel: 'nvidia/nemotron-3.5-super-vl:free',
     models: {
       'nvidia/nemotron-3.5-super-vl:free': { label: 'Nemotron 3.5 Super VL (:free)' },
-      'google/gemma-4-31b-it:free': { label: 'Gemma 4 31B Vision (:free)' },
-      'openrouter/free': { label: 'الموجّه المجاني التلقائي (openrouter/free)' }
+      'google/gemma-4-31b-it:free':        { label: 'Gemma 4 31B Vision (:free)' },
+      'openrouter/free':                   { label: 'openrouter/free (تلقائي مجاني)' }
     }
   }
 };
@@ -382,131 +331,100 @@ let provider = PROVIDERS[readLS(LS_PROVIDER, 'gemini')] ? readLS(LS_PROVIDER, 'g
 let modelName = readLS(LS_MODEL, PROVIDERS[provider].defaultModel);
 if (!PROVIDERS[provider].models[modelName]) modelName = PROVIDERS[provider].defaultModel;
 
-let ocrLang = readLS(LS_OCR_LANG, 'ara+eng') === 'ara' ? 'ara' : 'ara+eng';
+let ocrLang = readLS(LS_OCR_LANG, 'ara') === 'ara+eng' ? 'ara+eng' : 'ara';
 let localScanEnabled = readLS(LS_LOCAL_SCAN, 'true') !== 'false';
 let navModeEnabled = readLS(LS_NAV_MODE, 'true') !== 'false';
-let spatialAudioEnabled = readLS(LS_SPATIAL, 'true') !== 'false';
 let autoTorchEnabled = readLS(LS_AUTO_TORCH, 'true') !== 'false';
+let touchExploreEnabled = readLS(LS_EXPLORE, 'false') === 'true';
 let lifeMode = ['walk', 'home', 'clothes', 'grooming'].includes(readLS(LS_LIFE_MODE, 'walk')) ? readLS(LS_LIFE_MODE, 'walk') : 'walk';
-
 function hasCloudVision() { return Boolean(proxyUrl || apiKey); }
 
-/* ==================== الحالة والمستشعرات ==================== */
+/* ==================== متغيرات التشغيل ==================== */
 let videoStream = null, facingMode = 'environment';
 let isProcessing = false, lastDescription = '', lastRecognizedText = '';
 let arabicVoice = null, wakeLock = null, assistantSpeaking = false;
-let recognition = null, isListening = false, tapTimer = null, tapCount = 0;
-let thinkingSupported = true, isVerifyingApiKey = false;
+let recognition = null, isListening = false, thinkingSupported = true, isVerifyingApiKey = false;
 let torchOn = false, torchSupported = false;
 
 let objectModel = null, objectModelLoading = null, isScanningFrame = false, hybridScanTimer = null;
-let lastHazardAlertKey = '', lastHazardAlertTime = 0, lastTiltWarnTime = 0;
+let lastHazardAlertKey = '', lastHazardAlertTime = 0;
 let ocrWorker = null, ocrWorkerLang = '', ocrInitPromise = null;
-let segPipeline = null, segLoading = false;
-let depthPipeline = null, depthLoading = false;
-let phonePitchBeta = null;
+let segPipeline = null, segLoading = false, depthPipeline = null, depthLoading = false;
 
 let barcodeDetector = null;
-try {
-  if ('BarcodeDetector' in window) barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code', 'ean_13', 'ean_8', 'upc_a', 'code_128'] });
-} catch (e) { barcodeDetector = null; }
+try { if ('BarcodeDetector' in window) barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code', 'ean_13', 'ean_8', 'upc_a', 'code_128'] }); } catch (e) {}
 
-const MAX_DIM = 1024, TEXT_MAX_DIM = 1920, TIMEOUT_MS = 45000, DOUBLE_TAP_MS = 320;
-const STEP_METERS = 0.70;
+const MAX_DIM = 1024, TEXT_MAX_DIM = 1920, TIMEOUT_MS = 45000, STEP_METERS = 0.70;
+const MODE_ORDER = ['walk', 'home', 'clothes', 'grooming'];
 
 const LOCAL_OBJECT_MAP = Object.freeze({
-  'person':       { ar: 'شخص',        priority: 3, h: 1.68, w: 0.48 },
-  'car':          { ar: 'سيارة',      priority: 3, h: 1.48, w: 1.82 },
-  'bus':          { ar: 'حافلة',      priority: 3, h: 3.00, w: 2.45 },
-  'truck':        { ar: 'شاحنة',      priority: 3, h: 2.70, w: 2.35 },
-  'motorcycle':   { ar: 'دراجة نارية', priority: 3, h: 1.10, w: 0.72 },
-  'bicycle':      { ar: 'دراجة',      priority: 3, h: 1.05, w: 0.60 },
-  'dog':          { ar: 'كلب',        priority: 3, h: 0.55 },
-  'cat':          { ar: 'قطة',        priority: 2, h: 0.28 },
-  'knife':        { ar: 'سكين',       priority: 3, h: 0.24 },
-  'scissors':     { ar: 'مقص',        priority: 3, h: 0.20 },
-  'fire hydrant': { ar: 'عائق أرضي',  priority: 2, h: 0.75 },
-  'stop sign':    { ar: 'لافتة طريق', priority: 2, h: 0.70 },
-  'traffic light':{ ar: 'إشارة مرور', priority: 2, h: 0.80 },
-  'chair':        { ar: 'كرسي',       priority: 2, h: 0.85 },
-  'couch':        { ar: 'أريكة',      priority: 2, h: 0.85, w: 1.80 },
-  'dining table': { ar: 'طاولة',      priority: 2, h: 0.76, w: 1.20 },
-  'bed':          { ar: 'سرير',       priority: 2, h: 0.65, w: 1.50 },
-  'bench':        { ar: 'مقعد ثابت',  priority: 2, h: 0.80, w: 1.40 },
-  'toilet':       { ar: 'مرحاض',      priority: 2, h: 0.75 },
-  'sink':         { ar: 'حوض',        priority: 2, h: 0.85 },
-  'refrigerator': { ar: 'ثلاجة',      priority: 2, h: 1.75, w: 0.70 },
-  'oven':         { ar: 'بوتاجاز',    priority: 2, h: 0.88, w: 0.65 },
-  'microwave':    { ar: 'ميكروويف',   priority: 1, h: 0.32 },
-  'potted plant': { ar: 'أصيص زرع',   priority: 2, h: 0.70 },
-  'suitcase':     { ar: 'حقيبة سفر',  priority: 2, h: 0.65 },
-  'backpack':     { ar: 'حقيبة ظهر',  priority: 1, h: 0.45 },
-  'handbag':      { ar: 'حقيبة يد',   priority: 1, h: 0.32 },
-  'umbrella':     { ar: 'مظلة',       priority: 1, h: 0.80 },
-  'bottle':       { ar: 'زجاجة',      priority: 1, h: 0.24 },
-  'cup':          { ar: 'كوب',        priority: 1, h: 0.11 },
-  'bowl':         { ar: 'طبق',        priority: 1, h: 0.09 },
-  'cell phone':   { ar: 'هاتف محمول', priority: 1, h: 0.15 },
-  'remote':       { ar: 'ريموت',      priority: 1, h: 0.18 },
-  'laptop':       { ar: 'لابتوب',     priority: 1, h: 0.25 },
-  'tv':           { ar: 'شاشة تلفاز', priority: 1, h: 0.65 },
-  'book':         { ar: 'كتاب',       priority: 1, h: 0.23 },
-  'clock':        { ar: 'ساعة',       priority: 1, h: 0.30 }
+  'person': { ar: 'شخص', priority: 3, h: 1.68, w: 0.48 },
+  'car': { ar: 'سيارة', priority: 3, h: 1.48, w: 1.82 },
+  'bus': { ar: 'حافلة', priority: 3, h: 3.00, w: 2.45 },
+  'truck': { ar: 'شاحنة', priority: 3, h: 2.70, w: 2.35 },
+  'motorcycle': { ar: 'دراجة نارية', priority: 3, h: 1.10, w: 0.72 },
+  'bicycle': { ar: 'دراجة', priority: 3, h: 1.05, w: 0.60 },
+  'dog': { ar: 'كلب', priority: 3, h: 0.55 },
+  'cat': { ar: 'قطة', priority: 2, h: 0.28 },
+  'knife': { ar: 'سكين', priority: 3, h: 0.24 },
+  'scissors': { ar: 'مقص', priority: 3, h: 0.20 },
+  'fire hydrant': { ar: 'عائق أرضي', priority: 2, h: 0.75 },
+  'stop sign': { ar: 'لافتة طريق', priority: 2, h: 0.70 },
+  'traffic light': { ar: 'إشارة مرور', priority: 2, h: 0.80 },
+  'chair': { ar: 'كرسي', priority: 2, h: 0.85 },
+  'couch': { ar: 'أريكة', priority: 2, h: 0.85, w: 1.80 },
+  'dining table': { ar: 'طاولة', priority: 2, h: 0.76, w: 1.20 },
+  'bed': { ar: 'سرير', priority: 2, h: 0.65, w: 1.50 },
+  'bench': { ar: 'مقعد', priority: 2, h: 0.80, w: 1.40 },
+  'toilet': { ar: 'مرحاض', priority: 2, h: 0.75 },
+  'sink': { ar: 'حوض', priority: 2, h: 0.85 },
+  'refrigerator': { ar: 'ثلاجة', priority: 2, h: 1.75, w: 0.70 },
+  'oven': { ar: 'بوتاجاز', priority: 2, h: 0.88, w: 0.65 },
+  'potted plant': { ar: 'أصيص زرع', priority: 2, h: 0.70 },
+  'suitcase': { ar: 'حقيبة سفر', priority: 2, h: 0.65 },
+  'backpack': { ar: 'حقيبة', priority: 1, h: 0.45 },
+  'bottle': { ar: 'زجاجة', priority: 1, h: 0.24 },
+  'cup': { ar: 'كوب', priority: 1, h: 0.11 },
+  'cell phone': { ar: 'هاتف', priority: 1, h: 0.15 },
+  'remote': { ar: 'ريموت', priority: 1, h: 0.18 },
+  'laptop': { ar: 'لابتوب', priority: 1, h: 0.25 },
+  'tv': { ar: 'تلفاز', priority: 1, h: 0.65 },
+  'book': { ar: 'كتاب', priority: 1, h: 0.23 }
 });
 
-/* الفئات المهمة من نموذج SegFormer ADE20K (150 فئة بنية مكانية في 4.42 ميجابايت فقط!) */
 const ADE20K_CRITICAL = {
-  'door':         { ar: 'باب',          minPct: 0.025, priority: 2 },
-  'windowpane':   { ar: 'شباك أو زجاج نافذة', minPct: 0.025, priority: 2 },
-  'stairs':       { ar: 'سلالم',        minPct: 0.020, priority: 3 },
-  'stairway':     { ar: 'سلم أو درج',   minPct: 0.020, priority: 3 },
-  'step':         { ar: 'درجة سلم',     minPct: 0.015, priority: 3 },
-  'banister':     { ar: 'درابزين سلم',  minPct: 0.012, priority: 2 },
-  'railing':      { ar: 'حاجز أو درابزين', minPct: 0.015, priority: 2 },
-  'water':        { ar: 'مياه',         minPct: 0.020, priority: 3 },
-  'sidewalk':     { ar: 'رصيف مشاة',    minPct: 0.045, priority: 1 },
-  'road':         { ar: 'طريق سيارات',  minPct: 0.055, priority: 3 },
-  'mirror':       { ar: 'مرآة',         minPct: 0.025, priority: 1 },
-  'curtain':      { ar: 'ستارة',        minPct: 0.030, priority: 1 },
-  'pole':         { ar: 'عمود',         minPct: 0.012, priority: 3 }
+  'door': { ar: 'باب', minPct: 0.025, priority: 2 },
+  'windowpane': { ar: 'شباك أو زجاج', minPct: 0.025, priority: 2 },
+  'stairs': { ar: 'سلالم', minPct: 0.020, priority: 3 },
+  'stairway': { ar: 'سلم', minPct: 0.020, priority: 3 },
+  'step': { ar: 'درجة سلم', minPct: 0.015, priority: 3 },
+  'banister': { ar: 'درابزين', minPct: 0.012, priority: 2 },
+  'water': { ar: 'مياه', minPct: 0.020, priority: 3 },
+  'sidewalk': { ar: 'رصيف', minPct: 0.045, priority: 1 },
+  'road': { ar: 'طريق سيارات', minPct: 0.055, priority: 3 },
+  'mirror': { ar: 'مرآة', minPct: 0.025, priority: 1 },
+  'pole': { ar: 'عمود', minPct: 0.012, priority: 3 }
 };
 
 const LIFE_MODES = {
   walk: {
-    icon: '🛣️',
-    title: 'فحص الطريق والسلالم والحفر',
-    prompt: `أنت عين مخلصة لشخص كفيف يسير الآن في مصر. افحص الطريق والأرض بدقة متناهية بحثاً عن:
-1) السلالم والدرجات: حدد صراحة هل السلم **صاعد للأعلى** أم **نازل للأسفل**، وأين الدرابزين (يمين/يسار).
-2) الحفر والبالوعات المفتوحة وأغطية الصرف وتكسر الرصيف.
-3) السوائل الخطرة: برك المياه، بقع الزيت، الطين، أو الأرضية المبللة.
-4) الزجاج الشفاف أو الأبواب الزجاجية أو الحواجز المنخفضة أو المواسير.
-5) المركبات والأشخاص والمسافة التقريبية بالخطوات (خطوة ≈ 70 سم).
-لا تقل أبداً أن الطريق آمن أو خالٍ. نبّه لعدم عبور الشارع اعتماداً على الصورة.`
+    icon: '🛣️', title: 'الطريق والسلالم والحفر',
+    prompt: `أنت عين أمينة لشخص كفيف يسير في مصر. افحص بدقة:
+1) السلالم: هل السلم صاعد أم نازل؟ وأين الدرابزين؟
+2) الحفر، البالوعات، تكسّر الرصيف، المياه، الزيوت، والزجاج الشفاف.
+3) المركبات والأشخاص والمسافة التقريبية بالخطوات (خطوة ≈ 70 سم). لا تقل أبداً أن الطريق آمن.`
   },
   home: {
-    icon: '🚪',
-    title: 'الأبواب والشبابيك والغرفة',
-    prompt: `أنت تساعد شخصاً كفيفاً داخل المنزل أو مبنى. صف بدقة وموضع نسبي وبالمسافة بالخطوات:
-1) الأبواب: هل يوجد باب؟ هل هو مفتوح بالكامل أم موارب أم مغلق؟ وهل هو زجاجي أم خشبي؟ وأين المقبض؟
-2) الشبابيك: هل الشباك مفتوح أم مغلق؟
-3) السلالم أو العتبات (صاعد أم نازل).
-4) مخاطر المنزل: ماء أو زيت مسكوب، زجاج مكسور، سكين، شعلة بوتاجاز مشتعلة، أو أسلاك على الأرض.`
+    icon: '🚪', title: 'الأبواب والشبابيك والبيت',
+    prompt: `صف المكان الداخلي للكفيف بالخطوات والاتجاه: هل يوجد باب (مفتوح أم مغلق أم زجاجي وأين المقبض)؟ هل يوجد شباك؟ سلم صاعد أم نازل؟ ماء أو زيت مسكوب أو زجاج مكسور؟`
   },
   clothes: {
-    icon: '👔',
-    title: 'فحص الملابس والألوان والبقع',
-    prompt: `أنت تساعد شخصاً كفيفاً يريد الاطمئنان على ملابسه باستقلالية وكرامة. افحص القطعة أو الطقم الظاهر وأخبره بلطف ودقة:
-1) نوع القطعة، اللون الدقيق، والنقشة (سادة، مقلّم، كاروهات، منقوش).
-2) النظافة والمظهر: هل توجد أي بقعة طعام أو غبار أو زيت أو تمزق أو وبر؟ وهل تحتاج لكيّ (مكرمشة)؟
-3) التناسق: إذا ظهرت قطعتان معاً، هل تليقان معاً للخروج أم لا؟`
+    icon: '👔', title: 'الملابس والألوان والبقع',
+    prompt: `ساعد الكفيف على الاطمئنان على ملابسه باحترام: نوع القطعة، اللون الدقيق، النقشة، هل توجد بقعة أو غبار أو تحتاج كيّ؟ وهل تليق القطع معاً؟`
   },
   grooming: {
-    icon: '💇',
-    title: 'المرآة: الشعر والوجه والمظهر',
-    prompt: `أنت مرآة صادقة ولطيفة لشخص كفيف يتفقد مظهره قبل الخروج. افحص الصورة الأمامية وأخبره باحترام ووضوح:
-1) الشعر أو الحجاب: هل الشعر مهذب وممشط أم متطاير/مشعث من جهة معينة؟ وهل الطرحة/الحجاب مستوية؟
-2) الوجه واللحية: هل اللحية مرتبة؟ هل يوجد أي أثر طعام أو شيء عالق على الوجه أو النظارة؟
-3) ضبط الملابس: هل ياقة القميص مضبوطة أم مقلوبة؟ وهل الأزرار مقفولة بالترتيب الصحيح؟`
+    icon: '💇', title: 'المرآة: الشعر والوجه والمظهر',
+    prompt: `أنت مرآة صادقة ولطيفة لكفيف يتفقد مظهره: هل الشعر منسق ومهذب أم مشعث من جهة؟ هل الحجاب مستوٍ؟ هل اللحية مرتبة؟ هل يوجد أي شيء عالق بالوجه أو ياقة القميص أو الأزرار؟`
   }
 };
 
@@ -545,65 +463,51 @@ const preloadOcrBtn = document.getElementById('preload-ocr-btn');
 const loadSegformerBtn = document.getElementById('load-segformer-btn');
 const loadDepthBtn = document.getElementById('load-depth-btn');
 
+const touchExploreCheckbox = document.getElementById('touch-explore-checkbox');
 const liveLocalScanCheckbox = document.getElementById('live-local-scan-checkbox');
 const navModeCheckbox = document.getElementById('nav-mode-checkbox');
-const spatialAudioCheckbox = document.getElementById('spatial-audio-checkbox');
 const autoTorchCheckbox = document.getElementById('auto-torch-checkbox');
 
 const localScannerBadge = document.getElementById('local-scanner-badge');
 const segBadge = document.getElementById('seg-badge');
 const depthBadge = document.getElementById('depth-badge');
-const ocrBadge = document.getElementById('ocr-badge');
 const torchBadge = document.getElementById('torch-badge');
-const torchBtn = document.getElementById('torch-btn');
-const torchLabel = document.getElementById('torch-label');
-const camLabel = document.getElementById('cam-label');
-const navHint = document.getElementById('nav-hint');
 const statusText = document.getElementById('status-text');
 const riskIndicator = document.getElementById('risk-indicator');
 const videoElement = document.getElementById('camera-preview');
 const canvas = document.getElementById('canvas');
 const probeCanvas = document.getElementById('probe-canvas');
-const captureBtn = document.getElementById('capture-btn');
+const gesturePad = document.getElementById('gesture-pad');
 
-/* تهيئة الإعدادات */
 function populateModelsForProvider() {
-  const p = providerSelect.value || 'gemini';
-  const models = PROVIDERS[p].models;
+  const p = providerSelect.value || 'gemini', models = PROVIDERS[p].models;
   modelInput.innerHTML = '';
   for (const [id, info] of Object.entries(models)) {
-    const opt = document.createElement('option');
-    opt.value = id; opt.textContent = info.label;
-    modelInput.appendChild(opt);
+    const o = document.createElement('option'); o.value = id; o.textContent = info.label; modelInput.appendChild(o);
   }
   modelInput.value = models[modelName] ? modelName : PROVIDERS[p].defaultModel;
 }
 function onProviderChange() { provider = providerSelect.value; populateModelsForProvider(); }
-providerSelect.value = provider; populateModelsForProvider();
-proxyUrlInput.value = proxyUrl;
+providerSelect.value = provider; populateModelsForProvider(); proxyUrlInput.value = proxyUrl;
 ocrLangSelect.value = ocrLang;
 ocrLangSelect.addEventListener('change', () => {
-  ocrLang = ocrLangSelect.value === 'ara' ? 'ara' : 'ara+eng';
-  writeLS(LS_OCR_LANG, ocrLang);
-  ocrWorker = null; ocrInitPromise = null;
+  ocrLang = ocrLangSelect.value === 'ara+eng' ? 'ara+eng' : 'ara';
+  writeLS(LS_OCR_LANG, ocrLang); ocrWorker = null; ocrInitPromise = null;
 });
-if (liveLocalScanCheckbox) { liveLocalScanCheckbox.checked = localScanEnabled; liveLocalScanCheckbox.addEventListener('change', () => { localScanEnabled = liveLocalScanCheckbox.checked; writeLS(LS_LOCAL_SCAN, localScanEnabled); }); }
-if (navModeCheckbox) { navModeCheckbox.checked = navModeEnabled; navModeCheckbox.addEventListener('change', () => setNavMode(navModeCheckbox.checked, true)); }
-if (spatialAudioCheckbox) { spatialAudioCheckbox.checked = spatialAudioEnabled; spatialAudioCheckbox.addEventListener('change', () => { spatialAudioEnabled = spatialAudioCheckbox.checked; writeLS(LS_SPATIAL, spatialAudioEnabled); }); }
-if (autoTorchCheckbox) { autoTorchCheckbox.checked = autoTorchEnabled; autoTorchCheckbox.addEventListener('change', () => { autoTorchEnabled = autoTorchCheckbox.checked; writeLS(LS_AUTO_TORCH, autoTorchEnabled); }); }
+touchExploreCheckbox.checked = touchExploreEnabled;
+touchExploreCheckbox.addEventListener('change', () => { touchExploreEnabled = touchExploreCheckbox.checked; writeLS(LS_EXPLORE, touchExploreEnabled); });
+liveLocalScanCheckbox.checked = localScanEnabled;
+liveLocalScanCheckbox.addEventListener('change', () => { localScanEnabled = liveLocalScanCheckbox.checked; writeLS(LS_LOCAL_SCAN, localScanEnabled); });
+navModeCheckbox.checked = navModeEnabled;
+navModeCheckbox.addEventListener('change', () => setNavMode(navModeCheckbox.checked, true));
+autoTorchCheckbox.checked = autoTorchEnabled;
+autoTorchCheckbox.addEventListener('change', () => { autoTorchEnabled = autoTorchCheckbox.checked; writeLS(LS_AUTO_TORCH, autoTorchEnabled); });
 
-function initOrientationSensor() {
-  if (!window.DeviceOrientationEvent) return;
-  const attach = () => window.addEventListener('deviceorientation', ev => { if (typeof ev.beta === 'number') phonePitchBeta = ev.beta; }, { passive: true });
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') DeviceOrientationEvent.requestPermission().then(s => { if (s === 'granted') attach(); }).catch(() => {});
-  else attach();
-}
-
-/* ==================== الصوت المنطوق والنغمات ==================== */
+/* ==================== الصوت والاهتزاز ==================== */
 function pickArabicVoice() {
   if (!('speechSynthesis' in window)) return;
-  const voices = window.speechSynthesis.getVoices() || [];
-  arabicVoice = voices.find(v => /^ar[-_]eg/i.test(v.lang)) || voices.find(v => /^ar/i.test(v.lang)) || null;
+  const vs = window.speechSynthesis.getVoices() || [];
+  arabicVoice = vs.find(v => /^ar[-_]eg/i.test(v.lang)) || vs.find(v => /^ar/i.test(v.lang)) || null;
 }
 if ('speechSynthesis' in window) { pickArabicVoice(); window.speechSynthesis.onvoiceschanged = pickArabicVoice; }
 
@@ -627,33 +531,31 @@ function stopSpeaking() { if ('speechSynthesis' in window) window.speechSynthesi
 let audioContext = null;
 function ensureAudioContext() {
   if (!audioContext) { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
-  if (audioContext && audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+  if (audioContext?.state === 'suspended') audioContext.resume().catch(() => {});
   return audioContext;
 }
 function playSpatialBeep(side, urgent) {
-  if (!spatialAudioEnabled) return;
   const ctx = ensureAudioContext(); if (!ctx) return;
   try {
-    const osc = ctx.createOscillator(), gain = ctx.createGain();
-    const panner = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    const osc = ctx.createOscillator(), g = ctx.createGain(), p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
     osc.type = 'sine'; osc.frequency.value = urgent ? 840 : 580;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(urgent ? 0.24 : 0.14, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (urgent ? 0.22 : 0.13));
-    if (panner) { panner.pan.value = side === 'left' ? -0.92 : (side === 'right' ? 0.92 : 0); osc.connect(gain); gain.connect(panner); panner.connect(ctx.destination); }
-    else { osc.connect(gain); gain.connect(ctx.destination); }
-    osc.start(); osc.stop(ctx.currentTime + 0.25);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(urgent ? 0.22 : 0.13, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+    if (p) { p.pan.value = side === 'left' ? -0.92 : (side === 'right' ? 0.92 : 0); osc.connect(g); g.connect(p); p.connect(ctx.destination); }
+    else { osc.connect(g); g.connect(ctx.destination); }
+    osc.start(); osc.stop(ctx.currentTime + 0.22);
   } catch (e) {}
 }
 function playAckTone() {
   const ctx = ensureAudioContext(); if (!ctx) return;
   try {
-    const osc = ctx.createOscillator(), g = ctx.createGain();
-    osc.type = 'triangle'; osc.frequency.value = 540;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.value = 540;
     g.gain.setValueAtTime(0.001, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.11, ctx.currentTime + 0.015);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-    osc.connect(g); g.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.09);
+    o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.09);
   } catch (e) {}
 }
 function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
@@ -663,57 +565,93 @@ function updateRiskIndicator(level) {
   riskIndicator.classList.remove('hidden', 'risk-danger', 'risk-caution', 'risk-none', 'risk-unknown');
   if (level === 'خطر ظاهر') { riskIndicator.classList.add('risk-danger'); riskIndicator.innerText = 'تحذير: موضع يستلزم الحذر الشديد'; }
   else if (level === 'يستلزم الحذر') { riskIndicator.classList.add('risk-caution'); riskIndicator.innerText = 'انتبه: الصورة لا تكفي للحكم بأمان الطريق'; }
-  else if (level === 'لم يظهر خطر واضح في الصورة') { riskIndicator.classList.add('risk-none'); riskIndicator.innerText = 'لم يُرصد عائق معروف هنا؛ استعن بعصاك دائماً'; }
+  else if (level === 'لم يظهر خطر واضح في الصورة') { riskIndicator.classList.add('risk-none'); riskIndicator.innerText = 'لم يُرصد عائق معروف؛ استعن بعصاك دائماً'; }
   else { riskIndicator.classList.add('risk-unknown'); riskIndicator.innerText = 'تعذر التحقق؛ تأكد بعصاك قبل التقدم'; }
 }
 function hideRiskIndicator() { riskIndicator.classList.add('hidden'); riskIndicator.innerText = ''; }
 
-/* ==================== الكاميرا والكشاف والأوضاع ==================== */
+/* ==================== الإيماءات والزوايا الأربع ==================== */
+function bindCornerButton(btnId, vibPattern, onShortTap, onLongPress) {
+  const btn = document.getElementById(btnId);
+  let pressTimer = null, longFired = false;
+  btn.addEventListener('pointerdown', () => {
+    longFired = false; vibrate(vibPattern);
+    pressTimer = setTimeout(() => { longFired = true; vibrate([70, 50, 70]); onLongPress(); }, 620);
+  });
+  const clear = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+  btn.addEventListener('pointercancel', clear); btn.addEventListener('pointerleave', clear);
+  btn.addEventListener('click', () => { clear(); if (longFired) { longFired = false; return; } onShortTap(); });
+}
+
+bindCornerButton('corner-top-right', [25, 45, 25], () => readTextSmart(), () => recognizeEgyptianCurrency());
+bindCornerButton('corner-top-left', [40],
+  () => { if (assistantSpeaking || window.speechSynthesis?.speaking) { stopSpeaking(); updateStatus('تم إيقاف الصوت.'); } else toggleTorch(); },
+  () => openSettings()
+);
+bindCornerButton('corner-bottom-right', [20, 35, 20, 35, 20], () => measureDistanceNow(), () => cycleLifeMode());
+bindCornerButton('corner-bottom-left', [55], () => activateVoiceCommands(), () => readColorAndLightLocally());
+
+let padStartX = 0, padStartY = 0;
+gesturePad.addEventListener('pointerdown', ev => { padStartX = ev.clientX; padStartY = ev.clientY; });
+gesturePad.addEventListener('pointerup', ev => {
+  const dx = ev.clientX - padStartX, dy = ev.clientY - padStartY;
+  if (Math.hypot(dx, dy) < 42) { vibrate(30); captureAndAnalyze(); return; }
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx < 0) { vibrate(50); activateVoiceCommands(); }
+    else { vibrate([25, 40, 25]); cycleLifeMode(); }
+  } else {
+    if (dy < 0) { vibrate([25, 45, 25]); readTextSmart(); }
+    else if (assistantSpeaking) { stopSpeaking(); updateStatus('تم إيقاف الصوت.'); }
+    else { vibrate([20, 35, 20]); measureDistanceNow(); }
+  }
+});
+gesturePad.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); captureAndAnalyze(); } });
+
+let lastSpokenEl = null, lastExploreTime = 0;
+document.getElementById('main-screen').addEventListener('pointermove', ev => {
+  if (!touchExploreEnabled || ev.buttons === 0) return;
+  const el = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-speak-label]');
+  if (el && (el !== lastSpokenEl || Date.now() - lastExploreTime > 2600)) {
+    lastSpokenEl = el; lastExploreTime = Date.now();
+    vibrate(18); speak(el.getAttribute('data-speak-label'), true);
+  }
+});
+
+function speakTouchMapGuide() {
+  speak('خريطة سند سهلة جداً لأنها تعتمد على الحواف الأربع للهاتف. أعلى اليمين: اقرأ النص، وبضغطة مطولة العملة المصرية. أعلى اليسار: يسكت الصوت فوراً أو يشغل الكشاف، وبضغطة مطولة يفتح الإعدادات. أسفل اليمين: المسافة والأبواب والسلالم، ومطولاً يبدل الوضع. أسفل اليسار: اسأل بالصوت، ومطولاً اللون والنور. أما وسط الشاشة الضخم: لمسة واحدة تصف ما أمامك، واسحب للأعلى لقراءة النص، ولليسار للسؤال بالصوت، ولليمين لتغيير الوضع، وللأسفل للمسافة.');
+}
+
+/* ==================== أوضاع الحياة والكاميرا ==================== */
 function setLifeMode(mode, silent = false) {
   if (!LIFE_MODES[mode]) return;
   lifeMode = mode; writeLS(LS_LIFE_MODE, mode);
-  for (const m of ['walk', 'home', 'clothes', 'grooming']) {
-    const b = document.getElementById('mode-' + m);
-    if (b) b.setAttribute('aria-pressed', String(m === mode));
-  }
   const info = LIFE_MODES[mode];
   document.getElementById('mode-hero-icon').textContent = info.icon;
-  document.getElementById('mode-hero-title').textContent = info.title;
+  document.getElementById('mode-hero-title').textContent = 'وضع: ' + info.title;
   const targetFacing = mode === 'grooming' ? 'user' : 'environment';
   if (facingMode !== targetFacing && !mainScreen.classList.contains('hidden')) switchCameraFacing(targetFacing, true);
-  if (!silent) { const m = 'وضع: ' + info.title; updateStatus(m); speak(m); }
+  if (!silent) { const m = 'الوضع الآن: ' + info.title; updateStatus(m); speak(m); }
 }
+function cycleLifeMode() { setLifeMode(MODE_ORDER[(MODE_ORDER.indexOf(lifeMode) + 1) % MODE_ORDER.length], false); }
 
 async function startCamera() {
   if (videoStream) return;
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    updateStatus('الكاميرا غير متاحة. يجب فتح التطبيق عبر HTTPS.'); speak('الكاميرا غير متاحة'); return;
-  }
+  if (!navigator.mediaDevices?.getUserMedia) { updateStatus('الكاميرا تحتاج رابط HTTPS.'); speak('الكاميرا غير متاحة'); return; }
   try {
-    videoStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 }, focusMode: { ideal: 'continuous' } },
-      audio: false
-    });
+    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
   } catch (e1) {
     try { videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
-    catch (e2) { updateStatus('تعذر الوصول للكاميرا. امنح الإذن.'); speak('تعذر الوصول إلى الكاميرا'); return; }
+    catch (e2) { updateStatus('امنح إذن الكاميرا من المتصفح.'); speak('تعذر الوصول إلى الكاميرا'); return; }
   }
   videoElement.srcObject = videoStream;
   try { await videoElement.play(); } catch (e) {}
   detectTorchSupport();
-  if (camLabel) camLabel.textContent = facingMode === 'user' ? 'خلفية' : 'المرآة';
 }
 function stopCamera() { torchOn = false; updateTorchUI(); if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; } videoElement.srcObject = null; }
-async function switchCameraFacing(target, silent = false) { facingMode = target; stopCamera(); await startCamera(); if (!silent) speak(facingMode === 'user' ? 'الكاميرا الأمامية للمرآة نشطة.' : 'الكاميرا الخلفية نشطة.'); }
-async function toggleCameraFacing() { const next = facingMode === 'environment' ? 'user' : 'environment'; await switchCameraFacing(next, false); if (next === 'user') setLifeMode('grooming', true); }
+async function switchCameraFacing(target, silent = false) { facingMode = target; stopCamera(); await startCamera(); if (!silent) speak(facingMode === 'user' ? 'الكاميرا الأمامية للمرآة.' : 'الكاميرا الخلفية.'); }
 
-function detectTorchSupport() {
-  torchSupported = false; torchOn = false;
-  try { const tr = videoStream?.getVideoTracks()[0]; if (tr?.getCapabilities) torchSupported = !!tr.getCapabilities().torch; } catch (e) {}
-  if (torchBtn) torchBtn.style.opacity = torchSupported ? '1' : '0.45';
-  updateTorchUI();
-}
-function updateTorchUI() { if (torchLabel) torchLabel.textContent = torchOn ? 'إطفاء' : 'الكشاف'; if (torchBadge) torchBadge.classList.toggle('hidden', !torchOn); }
+function detectTorchSupport() { torchSupported = false; torchOn = false; try { torchSupported = !!videoStream?.getVideoTracks()[0]?.getCapabilities?.().torch; } catch (e) {} updateTorchUI(); }
+function updateTorchUI() { torchBadge.classList.toggle('hidden', !torchOn); }
 async function applyTorch(state, silent = false) {
   if (!videoStream || !torchSupported) return false;
   try { await videoStream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: !!state }] }); torchOn = !!state; updateTorchUI(); if (!silent) speak(torchOn ? 'تم تشغيل الكشاف.' : 'تم إطفاء الكشاف.'); return true; }
@@ -725,83 +663,97 @@ function probeFrameQuality() {
   const vw = videoElement.videoWidth, vh = videoElement.videoHeight;
   if (!vw || !vh) return null;
   const ctx = probeCanvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(videoElement, 0, 0, 96, 96);
-  const d = ctx.getImageData(0, 0, 96, 96).data;
+  ctx.drawImage(videoElement, 0, 0, 160, 120);
+  const d = ctx.getImageData(0, 0, 160, 120).data, lum = new Float32Array(160 * 120);
   let sumY = 0, edgeSum = 0;
-  const lum = new Float32Array(96 * 96);
-  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
-    const y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-    lum[p] = y; sumY += y;
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) { const y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; lum[p] = y; sumY += y; }
+  for (let y = 1; y < 119; y++) for (let x = 1; x < 159; x++) {
+    const idx = y * 160 + x; edgeSum += Math.abs(lum[idx] - lum[idx - 1]) + Math.abs(lum[idx] - lum[idx - 160]);
   }
-  for (let y = 1; y < 95; y++) for (let x = 1; x < 95; x++) {
-    const idx = y * 96 + x;
-    edgeSum += Math.abs(lum[idx] - lum[idx - 1]) + Math.abs(lum[idx] - lum[idx - 96]);
-  }
-  const meanY = sumY / (96 * 96), sharpness = edgeSum / (94 * 94);
+  const meanY = sumY / (160 * 120), sharpness = edgeSum / (158 * 118);
   let lightLabel = 'إضاءة جيدة';
   if (meanY < 16) lightLabel = 'مظلم تماماً أو العدسة مغطاة';
   else if (meanY < 54) lightLabel = 'إضاءة خافتة';
   else if (meanY > 228) lightLabel = 'إضاءة ساطعة جداً';
-  return { meanY, sharpness, lightLabel, isVeryDark: meanY < 16, isDim: meanY < 55, isFlat: sharpness < 4.5 };
+  return { meanY, sharpness, lightLabel, isVeryDark: meanY < 16, isDim: meanY < 55, isFlat: sharpness < 4.2, lum };
 }
 
-async function ensureLightForCloseCapture() {
-  const q = probeFrameQuality();
-  if (!q) return { q: null, turnedOnTorch: false };
-  if (q.isDim && autoTorchEnabled && torchSupported && !torchOn && facingMode === 'environment') {
-    const ok = await applyTorch(true, true);
-    if (ok) { await new Promise(r => setTimeout(r, 420)); return { q: probeFrameQuality(), turnedOnTorch: true }; }
+function runInstantSpatialGeometry(q) {
+  if (!q || !q.lum || q.isVeryDark) return [];
+  const W = 160, lum = q.lum, alerts = [];
+  let hRows = 0;
+  for (let y = 45; y < 112; y += 2) {
+    let rowDiff = 0;
+    for (let x = 35; x < 125; x += 2) rowDiff += Math.abs(lum[y * W + x] - lum[(y - 2) * W + x]);
+    if ((rowDiff / 45) > 13) hRows++;
   }
-  return { q, turnedOnTorch: false };
-}
+  if (hRows >= 11) alerts.push('تظهر خطوط أفقية متكررة في المسار (قد تكون درجات سلم أو عتبات متتالية؛ تحقّق بالعصا هل هي صاعدة أم نازلة).');
 
-async function captureCrispPhoto(maxDim, quality) {
-  if (videoStream && typeof ImageCapture !== 'undefined') {
-    try {
-      const tr = videoStream.getVideoTracks()[0];
-      if (tr && tr.readyState === 'live') {
-        const blob = await Promise.race([new ImageCapture(tr).takePhoto(), new Promise((_, rej) => setTimeout(() => rej(new Error('t')), 2000))]);
-        const bmp = await createImageBitmap(blob);
-        const s = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
-        canvas.width = Math.max(1, Math.round(bmp.width * s)); canvas.height = Math.max(1, Math.round(bmp.height * s));
-        canvas.getContext('2d', { alpha: false }).drawImage(bmp, 0, 0, canvas.width, canvas.height);
-        bmp.close();
-        return canvas.toDataURL('image/jpeg', quality).split(',')[1];
-      }
-    } catch (e) {}
+  const colEdges = new Float32Array(W);
+  for (let x = 12; x < W - 12; x += 2) {
+    let vDiff = 0;
+    for (let y = 12; y < 95; y += 2) vDiff += Math.abs(lum[y * W + x] - lum[y * W + (x - 2)]);
+    colEdges[x] = vDiff / 42;
   }
-  return captureFrame(maxDim, quality);
+  let leftJ = -1, rightJ = -1;
+  for (let x = 14; x < 68; x += 2) if (colEdges[x] > 16) { leftJ = x; break; }
+  for (let x = 92; x < 146; x += 2) if (colEdges[x] > 16) { rightJ = x; break; }
+  if (leftJ > 0 && rightJ > 0 && (rightJ - leftJ) >= 34 && (rightJ - leftJ) <= 105) {
+    alerts.push('تظهر حواف رأسية تشير إلى فتحة باب أو ممر أمامك.');
+  }
+
+  let glare = 0, darkFloor = 0;
+  for (let y = 70; y < 116; y += 2) for (let x = 25; x < 135; x += 2) {
+    const v = lum[y * W + x]; if (v > 238) glare++; else if (v < 95) darkFloor++;
+  }
+  if (glare > 28 && darkFloor > 300) alerts.push('توجد بقع لمعان عاكسة على الأرض؛ انتبه لاحتمال وجود مياه أو سطح زلق.');
+  return alerts;
 }
 
-function captureFrame(maxDim, quality) {
-  const vw = videoElement.videoWidth, vh = videoElement.videoHeight;
-  if (!vw || !vh) throw new Error('الكاميرا لم تجهز بعد.');
-  const s = Math.min(1, maxDim / Math.max(vw, vh));
-  canvas.width = Math.max(1, Math.round(vw * s)); canvas.height = Math.max(1, Math.round(vh * s));
-  canvas.getContext('2d', { alpha: false }).drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/jpeg', quality).split(',')[1];
+/* ==================== Transformers.js (WASM مفرد الخيط للأندرويد) ==================== */
+async function loadTransformersEngineFixed() {
+  if (location.protocol === 'file:') throw new Error('يتطلب فتح الملف عبر رابط HTTPS أو localhost وليس file://.');
+  const mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1/dist/transformers.min.js');
+  mod.env.allowLocalModels = false;
+  mod.env.useBrowserCache = true;
+  if (mod.env.backends?.onnx?.wasm) {
+    mod.env.backends.onnx.wasm.numThreads = 1;
+    mod.env.backends.onnx.wasm.proxy = false;
+    mod.env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1/dist/';
+  }
+  return mod;
 }
 
-/* ==================== نموذج SegFormer ADE20K المحلي (4.42 ميجا!) للأبواب والسلالم والشبابيك والمياه ==================== */
 async function enableAndLoadSegFormer() {
-  if (segPipeline) { updateSettingsStatus('محرك الأبواب والسلالم المحلي نشط بالفعل.', true); return; }
+  if (segPipeline) { updateSettingsStatus('نموذج الأبواب والسلالم جاهز ونشط.', true); return; }
   if (segLoading) return;
-  segLoading = true;
-  if (loadSegformerBtn) { loadSegformerBtn.disabled = true; loadSegformerBtn.textContent = 'جارٍ تحميل نموذج المكان (4.4 ميجا)...'; }
-  updateSettingsStatus('جارٍ تنزيل نموذج الأبواب والسلالم والشبابيك (4.4 ميجابايت فقط)...', true);
+  segLoading = true; loadSegformerBtn.disabled = true; loadSegformerBtn.textContent = 'جارٍ التحميل (4.4 ميجا)...';
+  updateSettingsStatus('جارٍ تنزيل نموذج الأبواب والسلالم والمياه...', true);
   try {
-    const mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1/dist/transformers.min.js');
-    segPipeline = await mod.pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512', {
-      dtype: 'q8'
-    });
-    if (segBadge) segBadge.classList.remove('hidden');
-    if (loadSegformerBtn) loadSegformerBtn.textContent = '✅ رؤية الأبواب والسلالم محلياً محفوظة ونشطة';
-    updateSettingsStatus('تم التحميل والحفظ! يرى الهاتف الآن الأبواب والشبابيك والسلالم والمياه محلياً.', true);
+    const mod = await loadTransformersEngineFixed();
+    segPipeline = await mod.pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512', { device: 'wasm', dtype: 'q8' });
+    segBadge.classList.remove('hidden'); loadSegformerBtn.textContent = '✅ نموذج الأبواب والسلالم محفوظ ونشط';
+    updateSettingsStatus('تم تحميل نموذج الأبواب والسلالم بنجاح!', true);
   } catch (e) {
-    segPipeline = null;
-    if (loadSegformerBtn) { loadSegformerBtn.disabled = false; loadSegformerBtn.textContent = '🚪 تحميل رؤية الأبواب والسلالم محلياً (4.4 ميجا)'; }
-    updateSettingsStatus('تعذر تحميل نموذج المكان الآن.', true);
+    segPipeline = null; loadSegformerBtn.disabled = false; loadSegformerBtn.textContent = '🚪 إعادة محاولة التحميل';
+    updateSettingsStatus('تعذر التحميل: ' + (e?.message || 'تحقق من الشبكة أو افتح عبر HTTPS'), true);
   } finally { segLoading = false; }
+}
+
+async function enableAndLoadNeuralDepth() {
+  if (depthPipeline) { updateSettingsStatus('محرك العمق نشط بالفعل.', true); return; }
+  if (depthLoading) return;
+  depthLoading = true; loadDepthBtn.disabled = true; loadDepthBtn.textContent = 'جارٍ التحميل (27 ميجا)...';
+  updateSettingsStatus('جارٍ تحميل محرك العمق ثلاثي الأبعاد...', true);
+  try {
+    const mod = await loadTransformersEngineFixed();
+    depthPipeline = await mod.pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', { device: 'wasm', dtype: 'q8' });
+    depthBadge.classList.remove('hidden'); loadDepthBtn.textContent = '✅ محرك العمق محفوظ ونشط';
+    updateSettingsStatus('تم تحميل محرك العمق الذكي وحفظه بنجاح!', true);
+  } catch (e) {
+    depthPipeline = null; loadDepthBtn.disabled = false; loadDepthBtn.textContent = '📏 إعادة محاولة التحميل';
+    updateSettingsStatus('تعذر التحميل: ' + (e?.message || 'تحقق من الشبكة أو افتح عبر HTTPS'), true);
+  } finally { depthLoading = false; }
 }
 
 async function analyzeLocalArchitecture() {
@@ -812,101 +764,47 @@ async function analyzeLocalArchitecture() {
     if (!Array.isArray(out)) return [];
     const findings = [];
     for (const seg of out) {
-      const lbl = String(seg.label || '').toLowerCase().trim();
-      const meta = ADE20K_CRITICAL[lbl];
-      if (!meta || !seg.mask || !seg.mask.data) continue;
+      const lbl = String(seg.label || '').toLowerCase().trim(), meta = ADE20K_CRITICAL[lbl];
+      if (!meta || !seg.mask?.data) continue;
       const w = seg.mask.width, h = seg.mask.height, ch = seg.mask.channels || 1, data = seg.mask.data;
-      let matched = 0, sampled = 0, sumX = 0, minY = h, maxY = 0;
-      for (let y = 0; y < h; y += 4) {
-        for (let x = 0; x < w; x += 4) {
-          sampled++;
-          if (data[(y * w + x) * ch] > 127) {
-            matched++; sumX += x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-          }
-        }
-      }
-      const pct = sampled ? matched / sampled : 0;
-      if (pct < meta.minPct) continue;
+      let matched = 0, sampled = 0, sumX = 0;
+      for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) { sampled++; if (data[(y * w + x) * ch] > 127) { matched++; sumX += x; } }
+      if ((matched / Math.max(1, sampled)) < meta.minPct) continue;
       const cx = (sumX / Math.max(1, matched)) / w;
-      const pos = cx < 0.34 ? 'على اليسار' : (cx > 0.66 ? 'على اليمين' : 'أمامك');
-      let extra = '';
-      if (lbl === 'stairs' || lbl === 'stairway' || lbl === 'step') {
-        extra = (minY < h * 0.45 && maxY > h * 0.72) ? ' (يمتد أمامك؛ تحقق بالعصا إن كان صاعداً أم نازلاً)' : ' (تحقّق بالعصا)';
-      }
-      findings.push({ ar: meta.ar, pos, extra, priority: meta.priority, pct });
+      findings.push(meta.ar + ' ' + (cx < 0.34 ? 'على اليسار' : (cx > 0.66 ? 'على اليمين' : 'أمامك')));
     }
-    findings.sort((a, b) => (b.priority - a.priority) || (b.pct - a.pct));
-    // منع تكرار فئتين متقاربتين مثل stairs و stairway
-    const seen = new Set(), clean = [];
-    for (const f of findings) {
-      const group = (f.ar.includes('سلم') || f.ar.includes('درج')) ? 'stairs' : f.ar;
-      if (!seen.has(group)) { seen.add(group); clean.push(f.ar + ' ' + f.pos + f.extra); }
-    }
-    return clean.slice(0, 4);
+    return [...new Set(findings)].slice(0, 4);
   } catch (e) { return []; }
 }
 
-/* ==================== محرك العمق العصبي (Depth Anything V2) ==================== */
-async function enableAndLoadNeuralDepth() {
-  if (depthPipeline) { updateSettingsStatus('محرك العمق نشط بالفعل.', true); return; }
-  if (depthLoading) return;
-  depthLoading = true;
-  if (loadDepthBtn) { loadDepthBtn.disabled = true; loadDepthBtn.textContent = 'جارٍ التحميل (~27 ميجا)...'; }
-  updateSettingsStatus('جارٍ تنزيل محرك العمق الذكي وحفظه في الهاتف (مرة واحدة)...', true);
-  try {
-    const mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1/dist/transformers.min.js');
-    const device = ('gpu' in navigator) ? 'webgpu' : 'wasm';
-    depthPipeline = await mod.pipeline('depth-estimation', 'onnx-community/depth-anything-v2-small', { device, dtype: device === 'webgpu' ? 'fp16' : 'q8' });
-    if (depthBadge) depthBadge.classList.remove('hidden');
-    if (loadDepthBtn) loadDepthBtn.textContent = '✅ محرك العمق محفوظ ونشط';
-    updateSettingsStatus('تم تحميل محرك العمق الذكي وحفظه!', true);
-  } catch (e) {
-    depthPipeline = null;
-    if (loadDepthBtn) { loadDepthBtn.disabled = false; loadDepthBtn.textContent = '📏 تحميل محرك العمق الذكي (27 ميجا)'; }
-    updateSettingsStatus('تعذر تحميل محرك العمق على هذا الجهاز.', true);
-  } finally { depthLoading = false; }
-}
-
-async function runNeuralDepthAnalysis(objects) {
+async function runNeuralDepthAnalysis() {
   if (!depthPipeline) return null;
   try {
     captureFrame(384, 0.8);
     const out = await depthPipeline(canvas.toDataURL('image/jpeg', 0.8));
-    const depthImg = out?.depth;
-    if (!depthImg?.data) return null;
-    const w = depthImg.width, h = depthImg.height, ch = depthImg.channels || 1, data = depthImg.data;
-    const avgBox = (x0, y0, x1, y1) => {
-      let sum = 0, cnt = 0;
-      for (let y = Math.floor(y0 * h); y < Math.floor(y1 * h); y += 2) {
-        for (let x = Math.floor(x0 * w); x < Math.floor(x1 * w); x += 2) { sum += data[(y * w + x) * ch]; cnt++; }
-      }
-      return cnt ? sum / cnt : 0;
+    const d = out?.depth; if (!d?.data) return null;
+    const w = d.width, h = d.height, ch = d.channels || 1, data = d.data;
+    const avg = (x0, y0, x1, y1) => {
+      let s = 0, c = 0;
+      for (let y = Math.floor(y0 * h); y < Math.floor(y1 * h); y += 2) for (let x = Math.floor(x0 * w); x < Math.floor(x1 * w); x += 2) { s += data[(y * w + x) * ch]; c++; }
+      return c ? s / c : 0;
     };
-    const leftMid = avgBox(0.05, 0.35, 0.33, 0.72), centerMid = avgBox(0.34, 0.35, 0.66, 0.72), rightMid = avgBox(0.67, 0.35, 0.95, 0.72);
-    const floorNear = avgBox(0.28, 0.78, 0.72, 0.96), floorAhead = avgBox(0.28, 0.56, 0.72, 0.74);
-
+    const l = avg(0.05, 0.35, 0.33, 0.72), c = avg(0.34, 0.35, 0.66, 0.72), r = avg(0.67, 0.35, 0.95, 0.72);
+    const fn = avg(0.28, 0.78, 0.72, 0.96), fa = avg(0.28, 0.56, 0.72, 0.74);
     const alerts = [];
-    if (centerMid > 185 || (centerMid > Math.max(leftMid, rightMid) + 48 && centerMid > 140)) {
-      alerts.push('عائق أو جدار قريب في وسط المسار.');
-    }
-    if (floorNear - floorAhead > 95 && floorNear > 165) {
-      alerts.push('انحدار مفاجئ في مستوى الأرض أمامك؛ تحسس بالعصا لاحتمال درج نازل أو حفرة.');
-    }
-    if (leftMid < rightMid - 22) alerts.push('اليسار يبدو أفتح نسبياً.');
-    else if (rightMid < leftMid - 22) alerts.push('اليمين يبدو أفتح نسبياً.');
+    if (c > 185 || (c > Math.max(l, r) + 48 && c > 140)) alerts.push('عائق أو سطح قريب في وسط المسار.');
+    if (fn - fa > 95 && fn > 165) alerts.push('انحدار مفاجئ في مستوى الأرض أمامك؛ تحقّق بالعصا لاحتمال درج نازل أو حفرة.');
+    if (l < r - 22) alerts.push('الجهة اليسرى أفتح نسبياً.'); else if (r < l - 22) alerts.push('الجهة اليمنى أفتح نسبياً.');
     return alerts;
   } catch (e) { return null; }
 }
 
-/* ==================== رصد الأجسام المحلي + تقدير المسافة الهندسية ==================== */
+/* ==================== رصد الأجسام والمسافة ==================== */
 function estimateObjectDistance(pred, vw, vh) {
-  const meta = LOCAL_OBJECT_MAP[pred.class];
-  if (!meta || !pred.bbox || !vw || !vh) return null;
+  const meta = LOCAL_OBJECT_MAP[pred.class]; if (!meta || !pred.bbox || !vw || !vh) return null;
   const [bx, by, bw, bh] = pred.bbox;
   const topTouch = by <= vh * 0.03, botTouch = (by + bh) >= vh * 0.97;
-  if (topTouch && botTouch) return { meters: 0.7, steps: 1, text: 'قريب جداً (أقل من خطوتين)', clipped: true };
+  if (topTouch && botTouch) return { meters: 0.7, steps: 1, text: 'قريب جداً (أقل من خطوتين)' };
   const tanHalfV = 0.577, tanHalfH = tanHalfV * (vw / vh);
   let distM = null;
   if (meta.h && !topTouch && !botTouch) distM = (meta.h * vh) / (2 * Math.max(1, bh) * tanHalfV);
@@ -915,22 +813,21 @@ function estimateObjectDistance(pred, vw, vh) {
   if (!distM || !isFinite(distM)) return null;
   distM = Math.max(0.4, Math.min(20, distM));
   const steps = Math.max(1, Math.round(distM / STEP_METERS));
-  if (distM < 1.0) return { meters: distM, steps: 1, text: 'قريب جداً (نحو خطوة)', clipped: topTouch || botTouch };
-  if (distM < 1.8) return { meters: distM, steps: 2, text: 'نحو خطوتين (متر ونصف تقريباً)', clipped: false };
-  return { meters: Math.round(distM * 2) / 2, steps, text: 'نحو ' + steps + (steps <= 10 ? ' خطوات' : ' خطوة') + ' (' + (Math.round(distM * 2) / 2) + ' متر)', clipped: false };
+  if (distM < 1.0) return { meters: distM, steps: 1, text: 'قريب جداً (نحو خطوة)' };
+  if (distM < 1.8) return { meters: distM, steps: 2, text: 'نحو خطوتين (متر ونصف)' };
+  const mr = Math.round(distM * 2) / 2;
+  return { meters: mr, steps, text: 'نحو ' + steps + (steps <= 10 ? ' خطوات' : ' خطوة') + ' (' + mr + ' متر)' };
 }
 
 async function initLocalObjectEngine() {
-  if (!localScanEnabled) { if (localScannerBadge) localScannerBadge.textContent = 'الأجسام: متوقفة'; return null; }
+  if (!localScanEnabled) { localScannerBadge.textContent = 'المسافة والأجسام: متوقفة'; return null; }
   if (objectModel) return objectModel;
   if (objectModelLoading) return objectModelLoading;
-  if (typeof cocoSsd === 'undefined') { if (localScannerBadge) localScannerBadge.textContent = 'الأجسام: غير متاحة'; return null; }
-  if (localScannerBadge) localScannerBadge.textContent = 'الأجسام: جارٍ التحميل...';
+  if (typeof cocoSsd === 'undefined') { localScannerBadge.textContent = 'الأجسام: غير متاحة'; return null; }
+  localScannerBadge.textContent = 'المسافة والأجسام: جارٍ التحميل...';
   objectModelLoading = cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(m => {
-    objectModel = m;
-    if (localScannerBadge) localScannerBadge.textContent = 'الأجسام والمسافة: نشط';
-    return m;
-  }).catch(() => { if (localScannerBadge) localScannerBadge.textContent = 'الأجسام: تعذر التحميل'; return null; });
+    objectModel = m; localScannerBadge.textContent = 'المسافة والأجسام: نشط'; return m;
+  }).catch(() => { localScannerBadge.textContent = 'الأجسام: تعذر التحميل'; return null; });
   return objectModelLoading;
 }
 
@@ -947,10 +844,6 @@ function startHybridLiveScanning() {
   hybridScanTimer = setInterval(async () => {
     if (isProcessing || isListening || isScanningFrame || assistantSpeaking) return;
     if (!videoElement || videoElement.paused || videoElement.ended || videoElement.videoWidth === 0 || !objectModel) return;
-    if (lifeMode === 'walk' && phonePitchBeta !== null && (Date.now() - lastTiltWarnTime) > 12000 && phonePitchBeta > 110) {
-      lastTiltWarnTime = Date.now();
-      speak('الكاميرا متجهة للأعلى؛ أمِل الهاتف للأمام ليرى الطريق.', false); return;
-    }
     isScanningFrame = true;
     try {
       const preds = await objectModel.detect(videoElement, 5, 0.58);
@@ -958,16 +851,13 @@ function startHybridLiveScanning() {
         .sort((a, b) => ((LOCAL_OBJECT_MAP[b.class].priority || 1) - (LOCAL_OBJECT_MAP[a.class].priority || 1)) || ((b.score || 0) - (a.score || 0)));
       const top = objects[0];
       if (top) {
-        const meta = LOCAL_OBJECT_MAP[top.class];
-        const pos = getRelativePositionArabic(top.bbox, videoElement.videoWidth);
+        const meta = LOCAL_OBJECT_MAP[top.class], pos = getRelativePositionArabic(top.bbox, videoElement.videoWidth);
         const dist = estimateObjectDistance(top, videoElement.videoWidth, videoElement.videoHeight);
-        const key = 'obj_' + top.class + '_' + pos;
-        const now = Date.now();
+        const key = 'obj_' + top.class + '_' + pos, now = Date.now();
         if (key !== lastHazardAlertKey || (now - lastHazardAlertTime) > 6500) {
           lastHazardAlertKey = key; lastHazardAlertTime = now;
           const urgent = meta.priority >= 3 || (dist && dist.steps <= 2);
-          playSpatialBeep(sideFromPosition(pos), urgent);
-          vibrate(urgent ? [90, 55, 90] : [40]);
+          playSpatialBeep(sideFromPosition(pos), urgent); vibrate(urgent ? [85, 55, 85] : [35]);
           const msg = meta.ar + ' ' + pos + (dist ? (' — ' + dist.text) : '') + '.';
           updateStatus(msg); updateRiskIndicator(urgent ? 'يستلزم الحذر' : 'لم يظهر خطر واضح في الصورة'); speak(msg, true);
         }
@@ -979,7 +869,6 @@ function stopHybridLiveScanning() { if (hybridScanTimer) { clearInterval(hybridS
 function setNavMode(on, announce) {
   navModeEnabled = !!on; writeLS(LS_NAV_MODE, navModeEnabled);
   if (navModeCheckbox) navModeCheckbox.checked = navModeEnabled;
-  if (navHint) navHint.textContent = navModeEnabled ? 'تنبيهات المسافة بالخطوات نشطة (لا تغني عن العصا)' : 'التنبيهات المستمرة متوقفة';
   if (navModeEnabled && localScanEnabled) startHybridLiveScanning(); else stopHybridLiveScanning();
   if (announce) speak(navModeEnabled ? 'تم تشغيل التنبيهات المستمرة.' : 'تم إيقاف التنبيهات المستمرة.');
 }
@@ -988,65 +877,27 @@ async function measureDistanceNow() {
   if (isProcessing) return;
   isProcessing = true; vibrate(35); playAckTone();
   try {
-    const model = await initLocalObjectEngine();
-    const lines = [];
-    let objects = [];
+    const q = probeFrameQuality();
+    if (q && q.isVeryDark) { const m = 'الصورة مظلمة جداً؛ شغّل الكشاف أو أبعد إصبعك.'; updateStatus(m); speak(m); return; }
+    const model = await initLocalObjectEngine(), lines = [];
     if (model && videoElement.videoWidth) {
       const preds = await model.detect(videoElement, 6, 0.45);
-      objects = (preds || []).filter(p => Object.prototype.hasOwnProperty.call(LOCAL_OBJECT_MAP, p.class));
-      for (const o of objects.slice(0, 3)) {
-        const meta = LOCAL_OBJECT_MAP[o.class];
-        const pos = getRelativePositionArabic(o.bbox, videoElement.videoWidth);
+      for (const o of (preds || []).filter(p => LOCAL_OBJECT_MAP[p.class]).slice(0, 3)) {
+        const meta = LOCAL_OBJECT_MAP[o.class], pos = getRelativePositionArabic(o.bbox, videoElement.videoWidth);
         const dist = estimateObjectDistance(o, videoElement.videoWidth, videoElement.videoHeight);
         lines.push(meta.ar + ' ' + pos + (dist ? (' ' + dist.text) : '') + '.');
       }
     }
-    const arch = await analyzeLocalArchitecture();
-    if (arch.length) lines.push('معالم المكان: ' + arch.join('، ') + '.');
-    const depthAlerts = await runNeuralDepthAnalysis(objects);
-    if (depthAlerts && depthAlerts.length) lines.push(...depthAlerts);
-    if (!lines.length) lines.push('لم أرصد أجساماً معروفة لحساب المسافة. فعّل نموذج الأبواب والسلالم أو محرك العمق من الإعدادات.');
-    lines.push('تأكد بعصاك دائماً.');
-    const msg = lines.join(' ');
-    lastDescription = msg; updateStatus(msg); speak(msg);
+    const geo = runInstantSpatialGeometry(q); if (geo.length) lines.push(...geo);
+    const arch = await analyzeLocalArchitecture(); if (arch.length) lines.push('تحليل إضافي: ' + arch.join('، ') + '.');
+    const depth = await runNeuralDepthAnalysis(); if (depth?.length) lines.push(...depth);
+    if (!lines.length) lines.push('لم أرصد عوائق معروفة أو درجاً ظاهراً أمام الكاميرا الآن.');
+    lines.push('تحقق بعصاك دائماً.');
+    const msg = lines.join(' '); lastDescription = msg; updateStatus(msg); speak(msg);
   } finally { isProcessing = false; }
 }
 
-/* ==================== قراءة النصوص (السريعة + تصحيح الورقة المقلوبة 180°) ==================== */
-function makeOcrCanvas(sourceCanvas, thresholdMode = false, rotate180 = false) {
-  const out = document.createElement('canvas');
-  const scale = Math.min(1.6, Math.max(1.0, 1900 / Math.max(sourceCanvas.width, sourceCanvas.height)));
-  out.width = Math.max(1, Math.round(sourceCanvas.width * scale));
-  out.height = Math.max(1, Math.round(sourceCanvas.height * scale));
-  const ctx = out.getContext('2d', { willReadFrequently: true });
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-  if (rotate180) {
-    ctx.translate(out.width, out.height); ctx.rotate(Math.PI);
-  }
-  ctx.drawImage(sourceCanvas, 0, 0, out.width, out.height);
-  if (rotate180) ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-  const img = ctx.getImageData(0, 0, out.width, out.height), d = img.data;
-  const w = out.width, h = out.height, gray = new Uint8ClampedArray(w * h);
-  let sum = 0;
-  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
-    const y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-    const st = Math.max(0, Math.min(255, (y - 128) * 1.28 + 132));
-    gray[p] = st; if ((p & 3) === 0) sum += st;
-  }
-  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
-    const p = y * w + x;
-    const sh = Math.max(0, Math.min(255, gray[p] * 1.36 - 0.09 * (gray[p - 1] + gray[p + 1] + gray[p - w] + gray[p + w])));
-    const idx = p * 4; d[idx] = d[idx + 1] = d[idx + 2] = sh;
-  }
-  if (thresholdMode) {
-    const mean = sum / Math.max(1, (w * h) / 4), th = Math.max(92, Math.min(198, mean - 12));
-    for (let i = 0; i < d.length; i += 4) { const b = d[i] > th ? 255 : 0; d[i] = d[i + 1] = d[i + 2] = b; d[i + 3] = 255; }
-  }
-  ctx.putImageData(img, 0, 0);
-  return out;
-}
-
+/* ==================== قارئ النصوص (Bradley-Roth + تصفية الثقة + تدوير 180/90) ==================== */
 async function ensureOcrWorker() {
   if (ocrWorker && ocrWorkerLang === ocrLang) return ocrWorker;
   if (ocrInitPromise) return ocrInitPromise;
@@ -1054,16 +905,14 @@ async function ensureOcrWorker() {
   const targetLang = ocrLang;
   ocrInitPromise = (async () => {
     try {
-      updateStatus('جارٍ تجهيز حزمة القراءة وحفظها في الهاتف (مرة واحدة)...');
+      updateStatus('جارٍ تحميل محرك القراءة وحفظه مرة واحدة...');
       const w = await Tesseract.createWorker(targetLang, 1, {
         logger: m => {
-          if (m.status === 'loading language traineddata') updateStatus('تنزيل لغة القراءة مرة واحدة: ' + Math.round((m.progress || 0) * 100) + '%');
+          if (m.status === 'loading language traineddata') updateStatus('تنزيل حزمة العربية (مرة واحدة): ' + Math.round((m.progress || 0) * 100) + '%');
           else if (m.status === 'recognizing text') updateStatus('قراءة النص: ' + Math.round((m.progress || 0) * 100) + '%');
         }
       });
-      ocrWorker = w; ocrWorkerLang = targetLang;
-      if (ocrBadge) { ocrBadge.classList.remove('hidden'); ocrBadge.textContent = 'القراءة: محفوظة وجاهزة'; }
-      return w;
+      ocrWorker = w; ocrWorkerLang = targetLang; return w;
     } catch (e) { ocrWorker = null; ocrWorkerLang = ''; return null; }
     finally { ocrInitPromise = null; }
   })();
@@ -1071,36 +920,92 @@ async function ensureOcrWorker() {
 }
 
 async function preloadOcrFromSettings() {
-  if (preloadOcrBtn) { preloadOcrBtn.disabled = true; preloadOcrBtn.textContent = 'جارٍ التنزيل والحفظ...'; }
-  updateSettingsStatus('جارٍ تنزيل حزمة اللغة العربية وحفظها للأبد...', true);
+  preloadOcrBtn.disabled = true; preloadOcrBtn.textContent = 'جارٍ التنزيل والحفظ...';
+  updateSettingsStatus('جارٍ تحميل لغة القراءة وحفظها في المتصفح...', true);
   const w = await ensureOcrWorker();
-  if (w) {
-    if (preloadOcrBtn) preloadOcrBtn.textContent = '✅ محفوظة في الهاتف وجاهزة';
-    updateSettingsStatus('تم تنزيل حزمة القراءة وحفظها! لن تعيد التحميل بعد الآن.', true);
-  } else {
-    if (preloadOcrBtn) { preloadOcrBtn.disabled = false; preloadOcrBtn.textContent = '📥 إعادة محاولة التنزيل'; }
-    updateSettingsStatus('تعذر التنزيل الآن.', true);
-  }
+  if (w) { preloadOcrBtn.textContent = '✅ محفوظة في الهاتف وجاهزة'; updateSettingsStatus('تم تنزيل حزمة القراءة وحفظها للأبد!', true); }
+  else { preloadOcrBtn.disabled = false; preloadOcrBtn.textContent = '📥 إعادة المحاولة'; updateSettingsStatus('تعذر التنزيل الآن.', true); }
 }
 
-async function fastOcrWithUpsideDownCheck(worker, sourceCanvas) {
-  await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1', user_defined_dpi: '300' });
-  const r1 = await worker.recognize(makeOcrCanvas(sourceCanvas, false, false));
-  const t1 = String(r1?.data?.text || '').trim(), c1 = Number(r1?.data?.confidence) || 0;
-  if (t1.length >= 12 && c1 >= 68) return { text: t1, confidence: c1, flipped: false };
+function makeBradleyOcrCanvas(sourceCanvas, angleDeg = 0, cropCenter = true) {
+  const sw = sourceCanvas.width, sh = sourceCanvas.height;
+  const mx = cropCenter ? Math.floor(sw * 0.10) : 0, my = cropCenter ? Math.floor(sh * 0.10) : 0;
+  const cw = sw - mx * 2, ch = sh - my * 2;
+  const out = document.createElement('canvas');
+  const scale = Math.min(1.5, Math.max(1.0, 1750 / Math.max(cw, ch)));
+  const rw = Math.max(1, Math.round(cw * scale)), rh = Math.max(1, Math.round(ch * scale));
+  if (angleDeg === 90 || angleDeg === 270) { out.width = rh; out.height = rw; } else { out.width = rw; out.height = rh; }
+  const ctx = out.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.save();
+  if (angleDeg === 180) { ctx.translate(out.width, out.height); ctx.rotate(Math.PI); }
+  else if (angleDeg === 90) { ctx.translate(out.width, 0); ctx.rotate(Math.PI / 2); }
+  else if (angleDeg === 270) { ctx.translate(0, out.height); ctx.rotate(-Math.PI / 2); }
+  ctx.drawImage(sourceCanvas, mx, my, cw, ch, 0, 0, rw, rh);
+  ctx.restore();
 
-  // إذا كانت النتيجة ضعيفة جداً أو رموزاً متكسرة (احتمال أن الورقة مقلوبة 180° في يد الكفيف!) نجرب تدويرها فوراً
-  const r180 = await worker.recognize(makeOcrCanvas(sourceCanvas, false, true));
-  const t180 = String(r180?.data?.text || '').trim(), c180 = Number(r180?.data?.confidence) || 0;
-  if (c180 > c1 + 8 && t180.length >= 6) return { text: t180, confidence: c180, flipped: true };
+  const w = out.width, h = out.height, img = ctx.getImageData(0, 0, w, h), d = img.data;
+  const gray = new Uint8ClampedArray(w * h), smooth = new Uint8ClampedArray(w * h);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) gray[p] = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const p = y * w + x; smooth[p] = (gray[p] * 4 + gray[p - 1] + gray[p + 1] + gray[p - w] + gray[p + w]) >> 3;
+  }
+  const integral = new Uint32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    let rowSum = 0;
+    for (let x = 0; x < w; x++) { const p = y * w + x; rowSum += smooth[p]; integral[p] = rowSum + (y > 0 ? integral[p - w] : 0); }
+  }
+  const rad = Math.max(12, Math.round(Math.min(w, h) / 28));
+  for (let y = 0; y < h; y++) {
+    const y1 = Math.max(0, y - rad), y2 = Math.min(h - 1, y + rad);
+    for (let x = 0; x < w; x++) {
+      const x1 = Math.max(0, x - rad), x2 = Math.min(w - 1, x + rad);
+      const count = (x2 - x1 + 1) * (y2 - y1 + 1);
+      const sum = integral[y2 * w + x2] - (y1 > 0 ? integral[(y1 - 1) * w + x2] : 0) - (x1 > 0 ? integral[y2 * w + (x1 - 1)] : 0) + (y1 > 0 && x1 > 0 ? integral[(y1 - 1) * w + (x1 - 1)] : 0);
+      const p = y * w + x, val = (smooth[p] * count < sum * 0.86) ? 0 : 255, idx = p * 4;
+      d[idx] = d[idx + 1] = d[idx + 2] = val; d[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return out;
+}
 
-  // تجربة ثالثة ثنائية اللون للحالات الصعبة
-  await worker.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1', user_defined_dpi: '300' });
-  const r2 = await worker.recognize(makeOcrCanvas(sourceCanvas, true, false));
-  const t2 = String(r2?.data?.text || '').trim(), c2 = Number(r2?.data?.confidence) || 0;
-  const best = [{ text: t1, confidence: c1, flipped: false }, { text: t180, confidence: c180, flipped: true }, { text: t2, confidence: c2, flipped: false }]
-    .sort((a, b) => (b.confidence + Math.min(10, b.text.length / 35)) - (a.confidence + Math.min(10, a.text.length / 35)))[0];
-  return best;
+function filterValidOcrWords(data) {
+  const words = Array.isArray(data?.words) ? data.words : [];
+  if (!words.length) return { text: String(data?.text || '').trim(), score: Number(data?.confidence) || 0 };
+  const kept = []; let confSum = 0;
+  for (const w of words) {
+    const txt = String(w.text || '').replace(/[|_~`^§©®™]/g, '').trim(), c = Number(w.confidence) || 0;
+    if (!txt || c < 42) continue;
+    if (txt.length === 1 && !/[\u0660-\u06690-9و]/.test(txt)) continue;
+    if (!/[\u0600-\u06FFA-Za-z0-9\u0660-\u0669]/.test(txt)) continue;
+    kept.push(txt); confSum += c;
+  }
+  return { text: kept.join(' ').replace(/\s+/g, ' ').trim(), score: (kept.length ? confSum / kept.length : 0) + Math.min(12, kept.length * 0.6) };
+}
+
+async function captureSharpestFrame(maxDim, quality) {
+  const f1 = captureFrame(maxDim, quality), q1 = probeFrameQuality();
+  await new Promise(r => setTimeout(r, 120));
+  const q2 = probeFrameQuality();
+  if (q2 && q1 && q2.sharpness >= q1.sharpness) return captureFrame(maxDim, quality);
+  return f1;
+}
+
+async function captureCrispPhotoOrBest(maxDim, quality) {
+  if (videoStream && typeof ImageCapture !== 'undefined') {
+    try {
+      const tr = videoStream.getVideoTracks()[0];
+      if (tr?.readyState === 'live') {
+        const blob = await Promise.race([new ImageCapture(tr).takePhoto(), new Promise((_, rej) => setTimeout(() => rej(new Error('t')), 2000))]);
+        const bmp = await createImageBitmap(blob), s = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+        canvas.width = Math.max(1, Math.round(bmp.width * s)); canvas.height = Math.max(1, Math.round(bmp.height * s));
+        canvas.getContext('2d', { alpha: false }).drawImage(bmp, 0, 0, canvas.width, canvas.height); bmp.close();
+        return canvas.toDataURL('image/jpeg', quality).split(',')[1];
+      }
+    } catch (e) {}
+  }
+  return captureSharpestFrame(maxDim, quality);
 }
 
 async function readTextSmart() {
@@ -1109,20 +1014,16 @@ async function readTextSmart() {
   try {
     const light = await ensureLightForCloseCapture();
     if (light.q && light.q.isVeryDark && !light.turnedOnTorch) {
-      const m = 'الصورة مظلمة جداً أو العدسة مغطاة. افتح النور أو تأكد من كشف الكاميرا.';
-      updateStatus(m); speak(m); return;
+      const m = 'الإضاءة مظلمة جداً أو العدسة مغطاة.'; updateStatus(m); speak(m); return;
     }
-
     let qrFound = '';
-    if (barcodeDetector) {
-      try { const codes = await barcodeDetector.detect(videoElement); if (codes?.[0]?.rawValue) qrFound = String(codes[0].rawValue).trim(); } catch (e) {}
-    }
+    if (barcodeDetector) { try { const codes = await barcodeDetector.detect(videoElement); if (codes?.[0]?.rawValue) qrFound = String(codes[0].rawValue).trim(); } catch (e) {} }
 
     if (hasCloudVision()) {
       updateStatus('جارٍ قراءة النص بدقة عالية...'); speak('جارٍ قراءة النص.');
       try {
-        const base64 = await captureCrispPhoto(TEXT_MAX_DIM, 0.90);
-        const rawText = await callCloudText(base64, 'اقرأ كل النص الموجود في هذه الصورة حرفياً (عربي أو إنجليزي)، وحتى لو كانت الورقة مقلوبة فاقلبها واقرأها بدقة. إذا كان دواءً فاذكر الاسم وتاريخ الصلاحية إن وجد.');
+        const b64 = await captureCrispPhotoOrBest(TEXT_MAX_DIM, 0.90);
+        const rawText = await callCloudText(b64, 'اقرأ كل النص الموجود في هذه الصورة حرفياً (عربي أو إنجليزي) حتى لو كانت الورقة مقلوبة أو مائلة. إذا كان دواءً اذكر الاسم وتاريخ الانتهاء فقط دون تخمين.');
         if (rawText) {
           lastRecognizedText = rawText;
           const out = qrFound ? (rawText + '. باركود: ' + qrFound) : rawText;
@@ -1132,45 +1033,48 @@ async function readTextSmart() {
     }
 
     const worker = await ensureOcrWorker();
-    if (!worker) {
-      const m = qrFound ? ('رمز باركود: ' + qrFound) : 'تعذر تحميل محرك القراءة. يلزم اتصال بالإنترنت مرة واحدة.';
-      updateStatus(m); speak(m); return;
+    if (!worker) { const m = qrFound ? ('باركود: ' + qrFound) : 'تعذر تحميل محرك القراءة. يلزم إنترنت مرة واحدة.'; updateStatus(m); speak(m); return; }
+
+    await captureCrispPhotoOrBest(TEXT_MAX_DIM, 0.94);
+    updateStatus('جارٍ تنقية الورقة وقراءة النص...');
+    await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1', user_defined_dpi: '300' });
+
+    const r0 = await worker.recognize(makeBradleyOcrCanvas(canvas, 0, true));
+    let best = filterValidOcrWords(r0.data), flipped = false;
+    if (best.score < 76 || best.text.length < 10) {
+      const r180 = await worker.recognize(makeBradleyOcrCanvas(canvas, 180, true));
+      const f180 = filterValidOcrWords(r180.data);
+      if (f180.score > best.score + 5) { best = f180; flipped = true; }
+      if (best.score < 70) {
+        const r90 = await worker.recognize(makeBradleyOcrCanvas(canvas, 90, false));
+        const f90 = filterValidOcrWords(r90.data);
+        if (f90.score > best.score + 6) { best = f90; flipped = true; }
+      }
     }
 
-    await captureCrispPhoto(TEXT_MAX_DIM, 0.94);
-    updateStatus('جارٍ قراءة النص محلياً...');
-    const res = await fastOcrWithUpsideDownCheck(worker, canvas);
-    const text = String(res.text || '').replace(/[|_~`]+/g, ' ').replace(/\u0640/g, '').replace(/\s+/g, ' ').trim();
-    lastRecognizedText = text;
-
+    lastRecognizedText = best.text;
     let spoken;
-    if (!text && qrFound) spoken = 'رمز باركود أو QR: ' + qrFound;
-    else if (!text) spoken = (light.q && light.q.isFlat) ? 'الصورة غير مركّزة. أبعد الهاتف قدر شبر وثبّته.' : 'لم أجد نصاً واضحاً. ضع الورقة في إضاءة جيدة وأعد المحاولة.';
-    else {
-      spoken = (res.flipped ? 'تم تصحيح الورقة المقلوبة: ' : '') + text;
-      if (res.confidence < 60) spoken += '. ملاحظة: القراءة غير واضحة تماماً وقد تحتوي أخطاء.';
-      if (/[A-Za-z]{4,}/.test(text) && !/[\u0600-\u06FF]{4,}/.test(text)) spoken += '. النص بالإنجليزية؛ قل «ترجم» لترجمته للعربية.';
-    }
+    if (!best.text && qrFound) spoken = 'رمز باركود أو QR: ' + qrFound;
+    else if (!best.text) spoken = (light.q && light.q.isFlat) ? 'الصورة غير مركّزة. أبعد الهاتف قدر شبر وثبّته ثانية.' : 'لم أجد نصاً واضحاً. ضع الورقة تحت إضاءة جيدة على بعد شبر وأعد المحاولة.';
+    else { spoken = (flipped ? 'بعد تصحيح اتجاه الورقة: ' : '') + best.text; if (best.score < 62) spoken += '. ملاحظة: القراءة متوسطة الوضوح.'; }
     lastDescription = spoken; updateStatus(spoken); speak(spoken);
   } finally { isProcessing = false; }
 }
 
-/* ==================== الألوان والملابس والنور والعملة ==================== */
+/* ==================== العملة والألوان والنور ==================== */
 function classifyPixelColor(r, g, b) {
-  const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
-  const v = max / 255, s = max === 0 ? 0 : delta / max;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min, v = max / 255, s = max === 0 ? 0 : d / max;
   if (v < 0.14) return 'أسود أو داكن جداً';
-  if (s < 0.14) return v > 0.85 ? 'أبيض أو فاتح جداً' : (v > 0.55 ? 'رمادي فاتح' : 'رمادي غامق');
-  let h = 0;
-  if (max === r) h = ((g - b) / delta) % 6; else if (max === g) h = (b - r) / delta + 2; else h = (r - g) / delta + 4;
+  if (s < 0.14) return v > 0.85 ? 'أبيض' : (v > 0.55 ? 'رمادي فاتح' : 'رمادي غامق');
+  let h = max === r ? ((g - b) / d) % 6 : (max === g ? (b - r) / d + 2 : (r - g) / d + 4);
   h = (h * 60 + 360) % 360;
   if (h < 12 || h >= 345) return v < 0.45 ? 'أحمر غامق أو نبيتي' : 'أحمر';
   if (h < 32) return (v < 0.58 && s < 0.72) ? 'بني' : 'برتقالي';
-  if (h < 58) return (v > 0.75 && s < 0.45) ? 'بيج أو كريمي' : 'أصفر أو ذهبي';
+  if (h < 58) return (v > 0.75 && s < 0.45) ? 'بيج أو كريمي' : 'أصفر';
   if (h < 90) return v < 0.52 ? 'زيتوني' : 'أخضر فاتح';
   if (h < 165) return v < 0.42 ? 'أخضر غامق' : 'أخضر';
   if (h < 198) return 'تركوازي';
-  if (h < 252) return v < 0.42 ? 'كحلي أو أزرق غامق' : (v > 0.80 ? 'سماوي' : 'أزرق');
+  if (h < 252) return v < 0.42 ? 'كحلي' : (v > 0.80 ? 'سماوي' : 'أزرق');
   if (h < 292) return 'بنفسجي';
   return 'وردي أو أرجواني';
 }
@@ -1186,25 +1090,26 @@ function sampleCenterColor() {
     const name = classifyPixelColor(r, g, b); counts.set(name, (counts.get(name) || 0) + 1); n++;
   }
   if (n < 10) return null;
-  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  const mean = ls / n, std = Math.sqrt(Math.max(0, lq / n - mean * mean));
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]), mean = ls / n, std = Math.sqrt(Math.max(0, lq / n - mean * mean));
   return { primary: ranked[0][0], secondary: ranked[1]?.[0] || null, ratio: ranked[0][1] / n, hasLocalizedContrast: std > 32 && ranked[0][1] / n > 0.72 };
+}
+
+async function ensureLightForCloseCapture() {
+  const q = probeFrameQuality(); if (!q) return { q: null, turnedOnTorch: false };
+  if (q.isDim && autoTorchEnabled && torchSupported && !torchOn && facingMode === 'environment') {
+    if (await applyTorch(true, true)) { await new Promise(r => setTimeout(r, 420)); return { q: probeFrameQuality(), turnedOnTorch: true }; }
+  }
+  return { q, turnedOnTorch: false };
 }
 
 async function readColorAndLightLocally() {
   if (isProcessing) return;
   isProcessing = true; vibrate(35); playAckTone();
   try {
-    const light = await ensureLightForCloseCapture();
-    const q = light.q;
-    if (q && q.isVeryDark && !light.turnedOnTorch) {
-      const m = 'المكان مظلم تماماً أو العدسة مغطاة. إن كنت تفحص نور الغرفة فالنور مطفأ.';
-      lastDescription = m; updateStatus(m); speak(m); return;
-    }
+    const light = await ensureLightForCloseCapture(), q = light.q;
+    if (q && q.isVeryDark && !light.turnedOnTorch) { const m = 'المكان مظلم تماماً أو العدسة مغطاة. النور مطفأ.'; lastDescription = m; updateStatus(m); speak(m); return; }
     const col = sampleCenterColor();
-    let msg = col
-      ? ('اللون الغالب يبدو ' + col.primary + (col.ratio < 0.45 && col.secondary ? (' مع ' + col.secondary) : '') + '. ' + (col.hasLocalizedContrast ? 'يوجد فرق لوني موضعي وسط اللون الموحّد قد يكون بقعة أو كتابة. ' : ''))
-      : 'الألوان غير واضحة. ';
+    let msg = col ? ('اللون الغالب: ' + col.primary + (col.ratio < 0.45 && col.secondary ? (' مع ' + col.secondary) : '') + '. ' + (col.hasLocalizedContrast ? 'يوجد فرق لوني موضعي قد يكون بقعة أو كتابة. ' : '')) : 'الألوان غير واضحة. ';
     if (q) msg += 'حالة النور: ' + q.lightLabel + '.';
     lastDescription = msg; updateStatus(msg); speak(msg);
   } finally { isProcessing = false; }
@@ -1214,23 +1119,20 @@ function normalizeOcrDigits(v) {
   return String(v || '').normalize('NFKC').replace(/[\u064B-\u065F\u0670ـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/[٠-٩]/g, c => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[،؛:|]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 const EGP_RULES = [
-  { value: 200, words: ['مئتان', 'مائتان', 'مائتين', 'two hundred'], colors: ['زيتوني', 'بني', 'أصفر أو ذهبي', 'بيج أو كريمي'] },
+  { value: 200, words: ['مئتان', 'مائتان', 'مائتين', 'two hundred'], colors: ['زيتوني', 'بني', 'أصفر', 'بيج أو كريمي'] },
   { value: 100, words: ['مائه', 'مئه', 'مائة', 'مئة', 'one hundred'], colors: ['وردي أو أرجواني', 'أحمر غامق أو نبيتي', 'رمادي فاتح', 'بيج أو كريمي'] },
   { value: 50,  words: ['خمسون', 'خمسين', 'fifty'], colors: ['بني', 'أحمر غامق أو نبيتي', 'برتقالي', 'بيج أو كريمي'] },
   { value: 20,  words: ['عشرون', 'عشرين', 'twenty'], colors: ['أخضر', 'أخضر فاتح', 'تركوازي', 'سماوي'] },
   { value: 10,  words: ['عشره', 'عشرة', 'ten'], colors: ['برتقالي', 'بني', 'أحمر', 'بيج أو كريمي'] },
   { value: 5,   words: ['خمسه', 'خمسة', 'five'], colors: ['تركوازي', 'أخضر', 'سماوي', 'أزرق'] }
 ];
-function inferEgyptianDenomination(raw, colorSample) {
-  const t = normalizeOcrDigits(raw);
-  const cue = /(جنيه|جنيها|جنيهات|البنك|المركزي|مصر|egypt|egp|pounds|central bank)/.test(t);
-  const found = new Set();
+function inferEgyptianDenomination(raw, col) {
+  const t = normalizeOcrDigits(raw), cue = /(جنيه|جنيها|جنيهات|البنك|المركزي|مصر|egypt|egp|pounds)/.test(t), found = new Set();
   for (const d of EGP_RULES) if (new RegExp('(?:^|\\D)' + d.value + '(?:\\D|$)').test(t) || d.words.some(w => t.includes(normalizeOcrDigits(w)))) found.add(d.value);
   if (found.size === 1) {
-    const val = [...found][0];
-    if (cue) return { value: val, reason: '' };
-    const rule = EGP_RULES.find(r => r.value === val);
-    if (colorSample && rule && rule.colors.includes(colorSample.primary)) return { value: val, reason: 'تمت قراءة الرقم واللون يرجّح الفئة.' };
+    const val = [...found][0]; if (cue) return { value: val, reason: '' };
+    const r = EGP_RULES.find(x => x.value === val);
+    if (col && r && r.colors.includes(col.primary)) return { value: val, reason: 'واللون يرجح الفئة.' };
     return { value: null, reason: 'ظهر الرقم ' + val + ' دون تأكيد أنه عملة.' };
   }
   return { value: null, reason: found.size > 1 ? 'ظهرت أكثر من فئة.' : 'لم تظهر أرقام العملة بوضوح.' };
@@ -1241,202 +1143,172 @@ async function recognizeEgyptianCurrency() {
   isProcessing = true; hideRiskIndicator(); vibrate(35); playAckTone();
   try {
     const light = await ensureLightForCloseCapture();
-    if (light.q && light.q.isVeryDark && !light.turnedOnTorch) {
-      const m = 'الإضاءة مظلمة لفحص العملة.'; updateStatus(m); speak(m); return;
-    }
+    if (light.q && light.q.isVeryDark && !light.turnedOnTorch) { const m = 'الإضاءة مظلمة لفحص العملة.'; updateStatus(m); speak(m); return; }
     if (hasCloudVision()) {
-      updateStatus('جارٍ فحص العملة المصرية بدقة...');
+      updateStatus('جارٍ فحص العملة...');
       try {
-        const base64 = await captureCrispPhoto(TEXT_MAX_DIM, 0.90);
-        const ans = await callCloudText(base64, 'هذه صورة لعملة مصرية (أو لا شيء). أخبرني باختصار ووضوح بالعربية: ما هي فئة الورقة النقدية المصرية بدقة (5 أو 10 أو 20 أو 50 أو 100 أو 200 جنيه) وهل هي واضحة أم لا؟');
+        const b64 = await captureCrispPhotoOrBest(TEXT_MAX_DIM, 0.90);
+        const ans = await callCloudText(b64, 'هذه عملة مصرية (أو لا شيء). ما فئتها بدقة بالعربية (5 أو 10 أو 20 أو 50 أو 100 أو 200 جنيه) وهل هي واضحة؟');
         if (ans) { lastDescription = ans; updateStatus(ans); speak(ans); return; }
       } catch (e) {}
     }
     const worker = await ensureOcrWorker();
-    if (!worker) { const m = 'تعذر تحميل قارئ العربية. يلزم إنترنت مرة واحدة.'; updateStatus(m); speak(m); return; }
-    updateStatus('جارٍ قراءة العملة محلياً...');
-    await captureCrispPhoto(TEXT_MAX_DIM, 0.93);
-    const col = sampleCenterColor();
-    const r = await fastOcrWithUpsideDownCheck(worker, canvas);
-    const res = inferEgyptianDenomination(r.text, col);
-    const msg = res.value
-      ? ('تقدير أولي: قد تكون ' + res.value + ' جنيه مصري. ' + res.reason + ' تأكد بالملمس أو مع شخص موثوق.')
-      : ('لم أحدد فئة العملة بثقة. ' + res.reason + ' افرد الورقة كاملة على مسافة شبر بإضاءة جيدة.');
+    if (!worker) { const m = 'تعذر تحميل قارئ العربية.'; updateStatus(m); speak(m); return; }
+    await captureCrispPhotoOrBest(TEXT_MAX_DIM, 0.94);
+    const col = sampleCenterColor(), r = await worker.recognize(makeBradleyOcrCanvas(canvas, 0, false));
+    const res = inferEgyptianDenomination(r?.data?.text || '', col);
+    const msg = res.value ? ('قد تكون ' + res.value + ' جنيه مصري. ' + res.reason + ' تأكد بالملمس.') : ('لم أحدد الفئة بثقة. ' + res.reason + ' افرد الورقة كاملة على مسافة شبر.');
     lastDescription = msg; updateStatus(msg); speak(msg);
   } finally { isProcessing = false; }
 }
 
-/* ==================== الفحص الشامل: خادم مجاني مشترك / مفتاح / محلي هجين (SegFormer + COCO + Depth) ==================== */
-async function buildLocalSceneReport(objects, archList, depthAlerts, lightQuality, modelRan) {
-  if (lightQuality && lightQuality.isVeryDark) {
+function captureFrame(maxDim, quality) {
+  const vw = videoElement.videoWidth, vh = videoElement.videoHeight;
+  if (!vw || !vh) throw new Error('الكاميرا لم تجهز بعد.');
+  const s = Math.min(1, maxDim / Math.max(vw, vh));
+  canvas.width = Math.max(1, Math.round(vw * s)); canvas.height = Math.max(1, Math.round(vh * s));
+  canvas.getContext('2d', { alpha: false }).drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', quality).split(',')[1];
+}
+
+/* ==================== الفحص الشامل ==================== */
+async function buildLocalSceneReport(objects, archList, depthAlerts, geoAlerts, lightQuality, modelRan) {
+  if (lightQuality?.isVeryDark) {
     updateRiskIndicator('تعذر التحقق');
     return 'الصورة مظلمة جداً أو العدسة مغطاة. شغّل الكشاف أو أبعد إصبعك عن الكاميرا.';
   }
   const parts = [];
   if (lifeMode === 'grooming') {
-    parts.push('المرآة الأمامية نشطة. حالة الإضاءة على وجهك: ' + (lightQuality ? lightQuality.lightLabel : 'جيد') + '. لتفاصيل تهذيب الشعر واللحية ونظافة الوجه يلزم تفعيل الخادم المجاني أو مفتاح Gemini.');
+    parts.push('المرآة الأمامية نشطة. الإضاءة على وجهك: ' + (lightQuality?.lightLabel || 'جيدة') + '. لتقييم الشعر واللحية والنظافة بدقة فعّل الخادم المجاني أو مفتاح Gemini من الإعدادات.');
     updateRiskIndicator('لم يظهر خطر واضح في الصورة'); return parts.join(' ');
   }
   if (lifeMode === 'clothes') {
     const col = sampleCenterColor();
-    if (col) {
-      parts.push('لون قطعة الملابس يبدو ' + col.primary + (col.secondary && col.ratio < 0.45 ? (' مع ' + col.secondary) : '') + '.');
-      if (col.hasLocalizedContrast) parts.push('هناك علامة أو فرق لوني موضعي وسط اللون الموحد؛ قد يكون بقعة أو رسمة.');
-    } else parts.push('قرّب الكاميرا من القماش لتحديد اللون.');
+    if (col) parts.push('لون الملابس في الوسط يبدو ' + col.primary + (col.secondary && col.ratio < 0.45 ? (' مع ' + col.secondary) : '') + '. ' + (col.hasLocalizedContrast ? 'توجد علامة لونية موضعية قد تكون بقعة أو نقشة.' : ''));
+    else parts.push('قرّب الكاميرا من القماش.');
     updateRiskIndicator('لم يظهر خطر واضح في الصورة'); return parts.join(' ');
   }
 
-  const hasUrgent = (objects || []).some(p => (LOCAL_OBJECT_MAP[p.class]?.priority || 1) >= 3)
-    || (archList || []).some(a => a.includes('سلم') || a.includes('مياه') || a.includes('طريق'));
-  updateRiskIndicator(hasUrgent || (depthAlerts && depthAlerts.length) ? 'يستلزم الحذر' : (modelRan || archList.length ? 'لم يظهر خطر واضح في الصورة' : 'تعذر التحقق'));
-
-  if (archList && archList.length) parts.push('معالم المكان: ' + archList.join('، ') + '.');
-  if (objects && objects.length) {
-    const items = objects.slice(0, 4).map(p => {
-      const m = LOCAL_OBJECT_MAP[p.class];
-      const pos = getRelativePositionArabic(p.bbox, videoElement.videoWidth);
-      const d = estimateObjectDistance(p, videoElement.videoWidth, videoElement.videoHeight);
+  const hasUrgent = (objects || []).some(p => (LOCAL_OBJECT_MAP[p.class]?.priority || 1) >= 3) || (geoAlerts && geoAlerts.length > 0);
+  updateRiskIndicator(hasUrgent ? 'يستلزم الحذر' : (modelRan ? 'لم يظهر خطر واضح في الصورة' : 'تعذر التحقق'));
+  if (objects.length) {
+    parts.push('الأجسام: ' + objects.slice(0, 4).map(p => {
+      const m = LOCAL_OBJECT_MAP[p.class], pos = getRelativePositionArabic(p.bbox, videoElement.videoWidth), d = estimateObjectDistance(p, videoElement.videoWidth, videoElement.videoHeight);
       return m.ar + ' ' + pos + (d ? (' (' + d.text + ')') : '');
-    });
-    parts.push('الأجسام: ' + items.join('، ') + '.');
+    }).join('، ') + '.');
   }
-  if (depthAlerts && depthAlerts.length) parts.push(...depthAlerts);
-  if (!parts.length) parts.push('لم أرصد أجساماً مألوفة. لتشغيل كشف الأبواب والسلالم محلياً حمّل نموذج SegFormer (4.4 ميجا) من الإعدادات.');
+  if (archList.length) parts.push('معالم: ' + archList.join('، ') + '.');
+  if (geoAlerts.length) parts.push(...geoAlerts);
+  if (depthAlerts?.length) parts.push(...depthAlerts);
+  if (!parts.length) parts.push('لم أرصد عوائق معروفة أمام الكاميرا.');
   parts.push('استعن بعصاك دائماً.');
   return parts.join(' ');
 }
 
 async function captureAndAnalyze(customQuestion = null) {
-  if (isProcessing) { updateStatus('انتظر انتهاء الطلب الحالي.'); vibrate([35, 60, 35]); return; }
+  if (isProcessing) { updateStatus('انتظر انتهاء الطلب الحالي.'); return; }
   if (isListening) stopVoiceRecognition();
   isProcessing = true; hideRiskIndicator(); vibrate(35); playAckTone();
-  updateStatus(customQuestion ? 'جارٍ البحث عن إجابة لسؤالك...' : 'جارٍ فحص المشهد...');
+  updateStatus(customQuestion ? 'جارٍ الإجابة عن سؤالك...' : 'جارٍ فحص المشهد...');
   try {
     const q = probeFrameQuality();
     let objects = [], modelRan = false;
     if (localScanEnabled && objectModel && videoElement.videoWidth > 0 && lifeMode !== 'grooming') {
-      const preds = await objectModel.detect(videoElement, 6, 0.50);
-      modelRan = true;
-      objects = (preds || []).filter(p => Object.prototype.hasOwnProperty.call(LOCAL_OBJECT_MAP, p.class))
-        .sort((a, b) => (b.bbox[2] * b.bbox[3]) - (a.bbox[2] * a.bbox[3]));
+      const preds = await objectModel.detect(videoElement, 6, 0.50); modelRan = true;
+      objects = (preds || []).filter(p => LOCAL_OBJECT_MAP[p.class]).sort((a, b) => (b.bbox[2] * b.bbox[3]) - (a.bbox[2] * a.bbox[3]));
     }
-
     let spoken;
     if (hasCloudVision()) {
       speak(customQuestion ? 'جارٍ الإجابة.' : 'جارٍ التحليل.');
       try {
-        const base64 = captureFrame(MAX_DIM, 0.84);
-        const promptText = LIFE_MODES[lifeMode].prompt + '\n' +
-          (customQuestion ? ('سؤال المستخدم: ' + customQuestion) : 'حلل الصورة بدقة وأجب بصراحة.') +
+        const b64 = captureFrame(MAX_DIM, 0.84);
+        const promptText = LIFE_MODES[lifeMode].prompt + '\n' + (customQuestion ? ('سؤال المستخدم: ' + customQuestion) : 'حلل الصورة بوضوح.') +
           '\nأعد JSON فقط بهذا الشكل: {"risk_level":"خطر ظاهر|يستلزم الحذر|لم يظهر خطر واضح في الصورة","risk_summary":"...","hazards":[{"category":"...","location":"...","distance_steps":"...","details":"..."}],"scene_description":"...","request_answer":"...","uncertainty":"..."}';
-        const data = await callCloudStructured(base64, promptText);
-        spoken = formatCloudStructured(data, !!customQuestion);
+        spoken = formatCloudStructured(await callCloudStructured(b64, promptText), !!customQuestion);
       } catch (err) {
-        const arch = await analyzeLocalArchitecture();
-        const depthAlerts = await runNeuralDepthAnalysis(objects);
-        spoken = await buildLocalSceneReport(objects, arch, depthAlerts, q, modelRan);
+        spoken = await buildLocalSceneReport(objects, await analyzeLocalArchitecture(), await runNeuralDepthAnalysis(), runInstantSpatialGeometry(q), q, modelRan);
         if (customQuestion) spoken = 'تعذر الاتصال السحابي. محلياً: ' + spoken;
       }
     } else {
-      const arch = await analyzeLocalArchitecture();
-      const depthAlerts = await runNeuralDepthAnalysis(objects);
-      spoken = await buildLocalSceneReport(objects, arch, depthAlerts, q, modelRan);
-      if (customQuestion) spoken = 'الأسئلة الحرة تحتاج ربط الخادم المجاني أو مفتاح Gemini/OpenRouter. محلياً: ' + spoken;
+      spoken = await buildLocalSceneReport(objects, await analyzeLocalArchitecture(), await runNeuralDepthAnalysis(), runInstantSpatialGeometry(q), q, modelRan);
+      if (customQuestion) spoken = 'الأسئلة الحرة تحتاج ربط الخادم المجاني أو مفتاحاً. محلياً: ' + spoken;
     }
-
     lastDescription = spoken; updateStatus(spoken); speak(spoken);
-  } catch (e) {
-    const m = e?.message || 'تعذر فحص المشهد.';
-    updateRiskIndicator('تعذر التحقق'); updateStatus(m); speak(m);
-  } finally { isProcessing = false; }
+  } catch (e) { updateRiskIndicator('تعذر التحقق'); updateStatus(e?.message || 'تعذر الفحص.'); speak(e?.message || 'تعذر الفحص.'); }
+  finally { isProcessing = false; }
 }
 
-/* ==================== الاتصال السحابي (Proxy Worker المجاني أولاً، ثم المفتاح الشخصي) ==================== */
+/* ==================== الاتصال السحابي (يدعم Gemini 2.5 و 3.x و OpenRouter و Worker) ==================== */
 function cleanText(v) { return String(v || '').replace(/[*#_`>]/g, '').replace(/\s+/g, ' ').trim(); }
-function formatCloudStructured(data, isQuestion) {
+function formatCloudStructured(data, isQ) {
   if (!data || typeof data === 'string') return cleanText(data);
   const level = ['خطر ظاهر', 'يستلزم الحذر', 'لم يظهر خطر واضح في الصورة'].includes(data.risk_level) ? data.risk_level : 'يستلزم الحذر';
   updateRiskIndicator(level);
-  const hazards = (Array.isArray(data.hazards) ? data.hazards : []).slice(0, 4).map(h => {
-    const d = h.distance_steps ? (' (' + cleanText(h.distance_steps) + ')') : '';
-    return cleanText(h.category || 'تنبيه') + ' ' + cleanText(h.location || '') + d + ': ' + cleanText(h.details || '');
-  });
+  const hz = (Array.isArray(data.hazards) ? data.hazards : []).slice(0, 4).map(h => cleanText(h.category || 'تنبيه') + ' ' + cleanText(h.location || '') + (h.distance_steps ? (' (' + cleanText(h.distance_steps) + ')') : '') + ': ' + cleanText(h.details || ''));
   const parts = [];
-  if (level === 'خطر ظاهر') {
-    parts.push('تحذير:');
-    if (data.risk_summary) parts.push(cleanText(data.risk_summary));
-    if (hazards.length) parts.push(hazards.join('. '));
-  } else if (level === 'يستلزم الحذر' && !isQuestion && hazards.length) {
-    parts.push(hazards.join('. '));
-  }
-  if (isQuestion && data.request_answer) parts.push(cleanText(data.request_answer));
-  if (data.scene_description && (!isQuestion || !data.request_answer)) parts.push(cleanText(data.scene_description));
+  if (level === 'خطر ظاهر') { parts.push('تحذير:'); if (data.risk_summary) parts.push(cleanText(data.risk_summary)); if (hz.length) parts.push(hz.join('. ')); }
+  else if (level === 'يستلزم الحذر' && !isQ && hz.length) parts.push(hz.join('. '));
+  if (isQ && data.request_answer) parts.push(cleanText(data.request_answer));
+  if (data.scene_description && (!isQ || !data.request_answer)) parts.push(cleanText(data.scene_description));
   if (data.uncertainty) parts.push('ملاحظة: ' + cleanText(data.uncertainty));
   return parts.filter(Boolean).join(' ');
 }
-
 async function callProxyWorker(imageBase64, prompt, task) {
   const c = new AbortController(), t = setTimeout(() => c.abort(), TIMEOUT_MS);
   try {
-    const r = await fetch(proxyUrl, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64, prompt, task }), signal: c.signal
-    });
+    const r = await fetch(proxyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64, prompt, task }), signal: c.signal });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.ok || !d.text) throw new Error(d.error || 'Proxy error');
     return String(d.text).trim();
   } finally { clearTimeout(t); }
 }
-
-async function callCloudStructured(base64, promptText) {
-  let raw = '';
-  if (proxyUrl) {
-    raw = await callProxyWorker(base64, promptText, 'structured');
-  } else if (provider === 'openrouter') {
-    raw = await callOpenRouterDirect(base64, promptText);
-  } else {
-    raw = await callGeminiDirect(base64, promptText, true);
-  }
+async function callCloudStructured(b64, promptText) {
+  let raw = proxyUrl ? await callProxyWorker(b64, promptText, 'structured')
+    : (provider === 'openrouter' ? await callOpenRouterDirect(b64, promptText) : await callGeminiDirect(b64, promptText, true));
   const m = raw.match(/\{[\s\S]*\}/);
   if (m) { try { return JSON.parse(m[0]); } catch (e) {} }
   return { risk_level: 'يستلزم الحذر', scene_description: raw, hazards: [], risk_summary: '', request_answer: raw, uncertainty: '' };
 }
-
-async function callCloudText(base64, promptText) {
-  if (proxyUrl) return cleanText(await callProxyWorker(base64, promptText, 'simple'));
-  if (provider === 'openrouter') return cleanText(await callOpenRouterDirect(base64, promptText));
-  return cleanText(await callGeminiDirect(base64, promptText, false));
+async function callCloudText(b64, promptText) {
+  if (proxyUrl) return cleanText(await callProxyWorker(b64, promptText, 'simple'));
+  if (provider === 'openrouter') return cleanText(await callOpenRouterDirect(b64, promptText));
+  return cleanText(await callGeminiDirect(b64, promptText, false));
 }
-
-async function callGeminiDirect(base64, promptText, structured) {
+function buildGeminiThinkingConfig(mName) {
+  const cfg = PROVIDERS.gemini.models[mName];
+  if (!cfg) return null;
+  if (Number.isInteger(cfg.thinkingBudget)) return { thinkingBudget: cfg.thinkingBudget };
+  if (cfg.thinkingLevel) return { thinkingLevel: cfg.thinkingLevel };
+  return null;
+}
+async function callGeminiDirect(b64, promptText, structured) {
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelName) + ':generateContent';
-  const genCfg = { maxOutputTokens: 850 };
+  const genCfg = { maxOutputTokens: 900 };
   if (structured) { genCfg.responseMimeType = 'application/json'; genCfg.responseJsonSchema = RESPONSE_SCHEMA; }
-  const tc = PROVIDERS.gemini.models[modelName]?.thinkingLevel;
-  if (thinkingSupported && tc) genCfg.thinkingConfig = { thinkingLevel: tc };
+  const tc = thinkingSupported ? buildGeminiThinkingConfig(modelName) : null;
+  if (tc) genCfg.thinkingConfig = tc;
   const c = new AbortController(), t = setTimeout(() => c.abort(), TIMEOUT_MS);
   try {
     const r = await fetch(url, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify({ contents: [{ parts: [{ text: promptText }, { inlineData: { mimeType: 'image/jpeg', data: base64 } }] }], generationConfig: genCfg }),
+      body: JSON.stringify({ contents: [{ parts: [{ text: promptText }, { inlineData: { mimeType: 'image/jpeg', data: b64 } }] }], generationConfig: genCfg }),
       signal: c.signal
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) {
-      if (r.status === 400 && thinkingSupported) { thinkingSupported = false; return callGeminiDirect(base64, promptText, structured); }
+      if (r.status === 400 && thinkingSupported) { thinkingSupported = false; return callGeminiDirect(b64, promptText, structured); }
       throw new Error('HTTP ' + r.status);
     }
     return (d?.candidates?.[0]?.content?.parts || []).map(p => p.text).filter(Boolean).join('').trim();
   } finally { clearTimeout(t); }
 }
-
-async function callOpenRouterDirect(base64, promptText) {
+async function callOpenRouterDirect(b64, promptText) {
   const c = new AbortController(), t = setTimeout(() => c.abort(), TIMEOUT_MS);
   try {
     const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json', 'HTTP-Referer': location.href, 'X-Title': 'Sanad Blind Aid' },
-      body: JSON.stringify({ model: modelName, messages: [{ role: 'user', content: [{ type: 'text', text: promptText }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + base64 } }] }], max_tokens: 750 }),
+      body: JSON.stringify({ model: modelName, messages: [{ role: 'user', content: [{ type: 'text', text: promptText }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + b64 } }] }], max_tokens: 750 }),
       signal: c.signal
     });
     const d = await r.json().catch(() => ({}));
@@ -1447,31 +1319,27 @@ async function callOpenRouterDirect(base64, promptText) {
 
 /* ==================== الأوامر الصوتية ==================== */
 function getSpeechRecognitionConstructor() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
-function stopVoiceRecognition() {
-  if (recognition) { try { recognition.onresult = null; recognition.onerror = null; recognition.onend = null; recognition.stop(); } catch (e) {} }
-  recognition = null; isListening = false;
-}
-function normalizeArabicCommand(t) {
-  return String(t || '').normalize('NFKC').toLowerCase().replace(/[\u064B-\u065F\u0670ـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[؟?!،,.؛:]/g, ' ').replace(/\s+/g, ' ').trim();
-}
+function stopVoiceRecognition() { if (recognition) { try { recognition.onresult = null; recognition.onerror = null; recognition.onend = null; recognition.stop(); } catch (e) {} } recognition = null; isListening = false; }
+function normalizeArabicCommand(t) { return String(t || '').normalize('NFKC').toLowerCase().replace(/[\u064B-\u065F\u0670ـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[؟?!،,.؛:]/g, ' ').replace(/\s+/g, ' ').trim(); }
 function parseVoiceCommand(raw) {
   const n = normalizeArabicCommand(raw).replace(/^(يا سند|من فضلك|لو سمحت|ممكن)\s+/, '').trim();
   if (!n) return null;
   const exact = (arr, type) => new Set(arr.map(normalizeArabicCommand)).has(n) ? { type } : null;
   let p = exact(['اسكت', 'توقف', 'بس', 'وقف الصوت'], 'stop'); if (p) return p;
-  p = exact(['شغل الكشاف', 'افتح الكشاف', 'شغل الفلاش', 'افتح الفلاش'], 'torchOn'); if (p) return p;
-  p = exact(['اطفي الكشاف', 'اقفل الكشاف', 'اطفي الفلاش', 'اقفل الفلاش'], 'torchOff'); if (p) return p;
-  p = exact(['تشغيل الرصد', 'شغل الملاحه', 'شغل الرصد'], 'navOn'); if (p) return p;
-  p = exact(['ايقاف الرصد', 'وقف الملاحه', 'وقف الرصد'], 'navOff'); if (p) return p;
-  p = exact(['اعد الوصف', 'اعد', 'تاني'], 'repeat'); if (p) return p;
+  p = exact(['اين الازرار', 'خريطه الازرار', 'فين الازرار', 'مساعده'], 'map'); if (p) return p;
+  p = exact(['شغل الكشاف', 'افتح الكشاف', 'شغل الفلاش'], 'torchOn'); if (p) return p;
+  p = exact(['اطفي الكشاف', 'اقفل الكشاف', 'اطفي الفلاش'], 'torchOff'); if (p) return p;
+  p = exact(['شغل الرصد', 'تشغيل الرصد', 'شغل الملاحه'], 'navOn'); if (p) return p;
+  p = exact(['وقف الرصد', 'ايقاف الرصد', 'وقف الملاحه'], 'navOff'); if (p) return p;
+  p = exact(['اعد', 'اعد الوصف', 'تاني'], 'repeat'); if (p) return p;
   p = exact(['اقرا لي', 'اقرا', 'اقرا النص', 'اقرا الورقه', 'اقرا الدواء'], 'read'); if (p) return p;
-  p = exact(['العمله', 'كام دي', 'كام جنيه', 'تعرف علي العمله'], 'currency'); if (p) return p;
-  p = exact(['ما لون هذا', 'لونه ايه', 'النور شغال', 'في نور', 'حاله النور'], 'color'); if (p) return p;
-  p = exact(['كم يبعد', 'المسافه', 'قد ايه المسافه'], 'distance'); if (p) return p;
+  p = exact(['العمله', 'كام دي', 'كام جنيه'], 'currency'); if (p) return p;
+  p = exact(['لونه ايه', 'ما لون هذا', 'في نور', 'النور شغال'], 'color'); if (p) return p;
+  p = exact(['المسافه', 'كم يبعد', 'قد ايه المسافه'], 'distance'); if (p) return p;
   p = exact(['ترجم', 'ترجم النص', 'ترجم للعربي'], 'translate'); if (p) return p;
-  p = exact(['وضع الطريق', 'السلم', 'الشارع'], 'modeWalk'); if (p) return p;
+  p = exact(['وضع الطريق', 'الشارع', 'السلم'], 'modeWalk'); if (p) return p;
   p = exact(['وضع البيت', 'الباب', 'الشباك'], 'modeHome'); if (p) return p;
-  p = exact(['ملابسي', 'هدومي', 'الملابس', 'في بقعه'], 'modeClothes'); if (p) return p;
+  p = exact(['ملابسي', 'هدومي', 'الملابس'], 'modeClothes'); if (p) return p;
   p = exact(['المراه', 'شعري', 'شكلي', 'مظهري'], 'modeGrooming'); if (p) return p;
   const s = n.match(/^(?:ابحث عن|دور علي|فين|اين|لاقيلي)\s+(.+)$/);
   if (s && s[1] && s[1].trim().length >= 2) return { type: 'find', target: s[1].trim() };
@@ -1481,21 +1349,16 @@ function parseVoiceCommand(raw) {
 function activateVoiceCommands() {
   if (isProcessing) return;
   const R = getSpeechRecognitionConstructor();
-  if (!R) { const m = 'الأوامر الصوتية غير مدعومة هنا؛ استخدم الأزرار.'; updateStatus(m); speak(m); return; }
+  if (!R) { const m = 'الأوامر الصوتية غير مدعومة في هذا المتصفح.'; updateStatus(m); speak(m); return; }
   stopSpeaking(); stopVoiceRecognition();
   setTimeout(() => {
     try {
       const inst = new R(); recognition = inst;
       inst.lang = 'ar-EG'; inst.continuous = false; inst.interimResults = false; inst.maxAlternatives = 3;
       let got = false, err = false;
-      inst.onstart = () => { isListening = true; updateStatus('أستمع إليك الآن... اسأل ما تريد.'); vibrate([35, 65, 35]); playAckTone(); };
-      inst.onresult = ev => {
-        got = true; isListening = false;
-        const txt = ev.results?.[0]?.[0]?.transcript || '';
-        try { inst.stop(); } catch (e) {}
-        handleVoiceCommand(parseVoiceCommand(txt));
-      };
-      inst.onerror = ev => { err = true; isListening = false; if (ev.error !== 'aborted') { updateStatus('لم أسمع الأمر بوضوح.'); speak('لم أسمع الأمر بوضوح.'); } };
+      inst.onstart = () => { isListening = true; updateStatus('أستمع إليك... اسأل ما تريد.'); vibrate([35, 65, 35]); playAckTone(); };
+      inst.onresult = ev => { got = true; isListening = false; const txt = ev.results?.[0]?.[0]?.transcript || ''; try { inst.stop(); } catch (e) {} handleVoiceCommand(parseVoiceCommand(txt)); };
+      inst.onerror = ev => { err = true; isListening = false; if (ev.error !== 'aborted') { updateStatus('لم أسمع الأمر.'); speak('لم أسمع الأمر.'); } };
       inst.onend = () => { isListening = false; if (!got && !err) updateStatus('انتهى الاستماع.'); if (recognition === inst) recognition = null; };
       inst.start();
     } catch (e) { isListening = false; }
@@ -1503,46 +1366,35 @@ function activateVoiceCommands() {
 }
 
 async function findObjectLive(targetRaw) {
-  const t = normalizeArabicCommand(targetRaw);
-  isProcessing = true;
+  const t = normalizeArabicCommand(targetRaw); isProcessing = true;
   try {
     if (localScanEnabled && objectModel && videoElement.videoWidth > 0) {
       const preds = await objectModel.detect(videoElement, 8, 0.40);
-      const objs = (preds || []).filter(p => Object.prototype.hasOwnProperty.call(LOCAL_OBJECT_MAP, p.class));
-      const found = objs.find(o => { const ar = normalizeArabicCommand(LOCAL_OBJECT_MAP[o.class].ar); return ar.includes(t) || t.includes(ar); });
+      const found = (preds || []).filter(p => LOCAL_OBJECT_MAP[p.class]).find(o => {
+        const ar = normalizeArabicCommand(LOCAL_OBJECT_MAP[o.class].ar); return ar.includes(t) || t.includes(ar);
+      });
       if (found) {
-        const pos = getRelativePositionArabic(found.bbox, videoElement.videoWidth);
-        const dist = estimateObjectDistance(found, videoElement.videoWidth, videoElement.videoHeight);
+        const pos = getRelativePositionArabic(found.bbox, videoElement.videoWidth), dist = estimateObjectDistance(found, videoElement.videoWidth, videoElement.videoHeight);
         playSpatialBeep(sideFromPosition(pos), false); vibrate([50, 50, 50]);
         const m = 'وجدت ' + LOCAL_OBJECT_MAP[found.class].ar + ' ' + pos + (dist ? (' ' + dist.text) : '') + '.';
         updateStatus(m); speak(m); return;
       }
     }
-    if (segPipeline) {
-      const arch = await analyzeLocalArchitecture();
-      const match = arch.find(line => normalizeArabicCommand(line).includes(t));
-      if (match) { updateStatus('وجدت ' + match); speak('وجدت ' + match); return; }
-    }
-    if (hasCloudVision()) {
-      isProcessing = false;
-      await captureAndAnalyze('هل ترى «' + targetRaw + '» في هذه الصورة؟ أين مكانه وكم يبعد بالخطوات؟');
-      return;
-    }
-    const m = 'لم أجد «' + targetRaw + '» أمامي. حرّك الكاميرا يميناً أو يساراً.';
-    updateStatus(m); speak(m);
+    if (hasCloudVision()) { isProcessing = false; await captureAndAnalyze('هل ترى «' + targetRaw + '»؟ وأين مكانه وكم يبعد بالخطوات؟'); return; }
+    const m = 'لم أجد «' + targetRaw + '» أمامي الآن.'; updateStatus(m); speak(m);
   } finally { isProcessing = false; }
 }
 
 async function handleVoiceCommand(cmd) {
-  if (!cmd) return;
-  vibrate(25);
+  if (!cmd) return; vibrate(25);
   switch (cmd.type) {
     case 'stop': stopSpeaking(); updateStatus('تم إيقاف الصوت.'); return;
+    case 'map': speakTouchMapGuide(); return;
     case 'torchOn': await applyTorch(true, false); return;
     case 'torchOff': await applyTorch(false, false); return;
     case 'navOn': setNavMode(true, true); return;
     case 'navOff': setNavMode(false, true); return;
-    case 'repeat': repeatLast(); return;
+    case 'repeat': if (lastDescription) { updateStatus(lastDescription); speak(lastDescription); } return;
     case 'read': await readTextSmart(); return;
     case 'currency': await recognizeEgyptianCurrency(); return;
     case 'color': await readColorAndLightLocally(); return;
@@ -1562,40 +1414,30 @@ async function translateLastTextToArabic() {
   if (!lastRecognizedText) { const m = 'اقرأ نصاً إنجليزياً أولاً ثم ترجمه.'; updateStatus(m); speak(m); return; }
   const src = lastRecognizedText.trim();
   if (!/[A-Za-z]{2}/.test(src)) { const m = 'النص الأخير ليس إنجليزياً.'; updateStatus(m); speak(m); return; }
-  if (!window.confirm('هل توافق على إرسال النص المقروء لخدمة الترجمة عبر الإنترنت؟')) return;
+  if (!window.confirm('هل توافق على إرسال النص المقروء للترجمة عبر الإنترنت؟')) return;
   isProcessing = true;
   try {
     updateStatus('جارٍ الترجمة...');
     const chunks = src.match(/[\s\S]{1,420}/g) || [src], out = [];
     for (const ch of chunks) {
       const r = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=' + encodeURIComponent(ch));
-      const p = await r.json();
-      if (Array.isArray(p?.[0])) out.push(p[0].map(x => x?.[0] || '').join(''));
+      const p = await r.json(); if (Array.isArray(p?.[0])) out.push(p[0].map(x => x?.[0] || '').join(''));
     }
-    const msg = 'الترجمة: ' + out.join(' ').trim();
-    lastDescription = msg; updateStatus(msg); speak(msg);
+    const msg = 'الترجمة: ' + out.join(' ').trim(); lastDescription = msg; updateStatus(msg); speak(msg);
   } catch (e) { updateStatus('تعذرت الترجمة.'); speak('تعذرت الترجمة.'); }
   finally { isProcessing = false; }
 }
 
 /* ==================== الإعدادات والتشغيل ==================== */
 function updateSettingsStatus(msg, announce) { if (settingsStatus) settingsStatus.textContent = msg; if (announce) speak(msg); }
-function speakSetupGuide() {
-  speak('مرحباً بك في سند الإصدار السابع عشر. أضفنا نموذجاً محلياً صغيراً جداً بأربعة ميجا ليرى الأبواب والشبابيك والسلالم والمياه والرصيف دون إنترنت. كما أصبح قارئ النصوص يقلب الورقة تلقائياً إذا كانت مقلوبة ويُحفظ في الهاتف مرة واحدة دون إعادة تنزيل. وهناك أربعة أوضاع في الأعلى: الطريق والسلالم، الأبواب والبيت، الملابس والبقع، وشعري ومظهري عبر الكاميرا الأمامية. اضغط ابدأ الآن للتشغيل المجاني فوراً.');
-}
 
 async function saveSettings(event) {
   if (event?.preventDefault) event.preventDefault();
   if (isVerifyingApiKey) return;
   const px = String(proxyUrlInput.value || '').trim().replace(/\/$/, '');
-  const p = providerSelect.value || 'gemini';
-  const key = String(apiKeyInput.value || '').trim();
+  const p = providerSelect.value || 'gemini', key = String(apiKeyInput.value || '').trim();
   const model = String(modelInput.value || '') || PROVIDERS[p].defaultModel;
-
-  if (!px && !key) {
-    updateSettingsStatus('لم تُدخل رابط خادم ولا مفتاحاً؛ اضغط «ابدأ الآن» للعمل بالذكاء المحلي المجاني.', true);
-    return;
-  }
+  if (!px && !key) { updateSettingsStatus('لم تُدخل رابط خادم ولا مفتاحاً؛ اضغط «ابدأ الآن» للعمل محلياً.', true); return; }
 
   isVerifyingApiKey = true; saveButton.disabled = true; saveButton.textContent = 'جارٍ التحقق...';
   try {
@@ -1603,26 +1445,18 @@ async function saveSettings(event) {
       const url = p === 'openrouter' ? 'https://openrouter.ai/api/v1/auth/key' : ('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model));
       const hdrs = p === 'openrouter' ? { 'Authorization': 'Bearer ' + key } : { 'x-goog-api-key': key };
       const r = await fetch(url, { headers: hdrs, cache: 'no-store' });
-      if (!r.ok) throw new Error('رفض المزوّد المفتاح. تأكد من نسخه كاملاً.');
+      if (!r.ok) throw new Error('المفتاح غير صحيح أو النموذج غير متاح لهذا الحساب.');
     }
-    proxyUrl = px; apiKey = key; provider = p; modelName = model;
-    try {
-      if (rememberKeyCheckbox.checked) {
-        if (px) localStorage.setItem(LS_PROXY, px); else localStorage.removeItem(LS_PROXY);
-        if (key) { localStorage.setItem(LS_KEY, key); sessionStorage.removeItem(SS_KEY); }
-        else { localStorage.removeItem(LS_KEY); sessionStorage.removeItem(SS_KEY); }
-      } else {
-        if (key) sessionStorage.setItem(SS_KEY, key);
-      }
-      writeLS(LS_PROVIDER, provider); writeLS(LS_MODEL, model);
-    } catch (e) {}
+    proxyUrl = px; apiKey = key; provider = p; modelName = model; thinkingSupported = true;
+    if (rememberKeyCheckbox.checked) {
+      if (px) localStorage.setItem(LS_PROXY, px); else localStorage.removeItem(LS_PROXY);
+      if (key) { localStorage.setItem(LS_KEY, key); sessionStorage.removeItem(SS_KEY); }
+    } else if (key) sessionStorage.setItem(SS_KEY, key);
+    writeLS(LS_PROVIDER, provider); writeLS(LS_MODEL, model);
     updateSettingsStatus('تم التفعيل بنجاح!', true);
     await startApp(true);
-  } catch (err) {
-    updateSettingsStatus(err.message || 'تعذر التحقق.', true);
-  } finally {
-    isVerifyingApiKey = false; saveButton.disabled = false; saveButton.textContent = 'حفظ وتفعيل العيون الكاملة';
-  }
+  } catch (err) { updateSettingsStatus(err.message || 'تعذر التحقق.', true); }
+  finally { isVerifyingApiKey = false; saveButton.disabled = false; saveButton.textContent = 'حفظ وتفعيل الرؤية الكاملة'; }
 }
 
 async function startFreeMode() { await startApp(true); }
@@ -1636,33 +1470,21 @@ function openSettings() {
 function forgetSavedKey() {
   try { localStorage.removeItem(LS_KEY); sessionStorage.removeItem(SS_KEY); localStorage.removeItem(LS_PROXY); localStorage.removeItem('gemini_api_key'); } catch (e) {}
   apiKey = ''; proxyUrl = DEFAULT_PUBLIC_PROXY_URL; apiKeyInput.value = ''; proxyUrlInput.value = proxyUrl;
-  updateSettingsStatus('تم حذف الإعدادات الشخصية. الميزات المحلية مستمرة مجاناً.', true);
+  updateSettingsStatus('تم الحذف. العمل مستمر مجاناً محلياً.', true);
 }
 async function keepScreenAwake() { try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch (e) {} }
 
 async function startApp(fromUserGesture) {
   settingsScreen.classList.add('hidden'); mainScreen.classList.remove('hidden');
-  ensureAudioContext(); initOrientationSensor();
+  ensureAudioContext();
   facingMode = lifeMode === 'grooming' ? 'user' : 'environment';
   await startCamera(); keepScreenAwake();
   initLocalObjectEngine();
   setLifeMode(lifeMode, true);
   setNavMode(navModeEnabled, false);
-  const msg = hasCloudVision()
-    ? 'سند جاهز بالعيون الشاملة وتقدير المسافة بالخطوات. الوضع الحالي: ' + LIFE_MODES[lifeMode].title + '.'
-    : 'سند جاهز مجاناً محلياً وتقدير المسافة بالخطوات. الوضع الحالي: ' + LIFE_MODES[lifeMode].title + '.';
+  const msg = 'سند جاهز. وسط الشاشة يصف ما حولك، والزوايا الأربع لقراءة النص، المسافة، السؤال بالصوت، والكشاف. قل أين الأزرار لمعرفة الخريطة.';
   updateStatus(msg); hideRiskIndicator();
   if (fromUserGesture) speak(msg);
-}
-
-function handleCaptureTap() {
-  if (tapCount === 0) { tapCount = 1; tapTimer = setTimeout(() => { tapCount = 0; tapTimer = null; captureAndAnalyze(); }, DOUBLE_TAP_MS); return; }
-  tapCount = 0; if (tapTimer) clearTimeout(tapTimer); tapTimer = null; activateVoiceCommands();
-}
-captureBtn.addEventListener('click', handleCaptureTap);
-function repeatLast() {
-  if (lastDescription) { updateStatus(lastDescription); speak(lastDescription); }
-  else { const m = 'لا يوجد وصف سابق بعد.'; updateStatus(m); speak(m); }
 }
 
 document.addEventListener('visibilitychange', () => {
