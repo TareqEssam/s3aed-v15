@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#030712">
+  <meta name="color-scheme" content="dark">
+  <title>سند V15 — المساعد البصري المجاني</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <style>
+    html, body { height: 100%; overscroll-behavior: none; }
+    body {
+      -webkit-user-select: none; user-select: none;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    }
+    #main-screen { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+    #top-bar {
+      flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;
+      padding: calc(env(safe-area-inset-top) + 6px) 8px 6px;
+      background: #030712; border-bottom: 1px solid #1f2937; z-index: 30;
+    }
+    #top-bar button {
+      min-height: 48px; padding: 6px 4px; border-radius: 10px;
+      font-size: 13px; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; gap: 4px; text-align: center;
+    }
+    #control-dock {
+      flex: 0 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+      padding: 10px 10px calc(env(safe-area-inset-bottom) + 14px);
+      background: #030712; border-top: 1px solid #1f2937; z-index: 30;
+    }
+    #control-dock button {
+      min-width: 0; min-height: 76px; padding: 10px 6px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 5px; border-radius: 14px;
+      font-size: 15px; line-height: 1.25; font-weight: 700; text-align: center;
+      white-space: normal; overflow-wrap: anywhere;
+    }
+    #control-dock .control-icon { font-size: 1.45rem; line-height: 1; }
+    @media (max-width: 360px) {
+      #control-dock { gap: 6px; padding: 8px 6px calc(env(safe-area-inset-bottom) + 12px); }
+      #control-dock button { min-height: 68px; font-size: 13px; }
+      #top-bar button { font-size: 12px; min-height: 44px; }
+    }
+    @media (max-height: 650px) {
+      #control-dock button { min-height: 64px; padding: 8px 4px; }
+      #top-bar button { min-height: 42px; }
+    }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 4px solid #60a5fa; outline-offset: -3px;
+    }
+    #capture-btn { cursor: pointer; padding-bottom: 120px; padding-top: 44px; }
+    #risk-indicator { font-weight: 800; }
+    #settings-screen { justify-content: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    #settings-screen a, #settings-screen button { min-height: 54px; }
+    #remember-key-checkbox, #live-local-scan-checkbox, #nav-mode-checkbox,
+    #spatial-audio-checkbox, #auto-torch-checkbox {
+      width: 26px; height: 26px; flex: 0 0 auto; accent-color: #2563eb;
+    }
+    #api-key-input {
+      direction: ltr; text-align: left; font-size: 18px; min-height: 56px;
+      user-select: text !important; -webkit-user-select: text !important;
+    }
+    .settings-step {
+      border: 1px solid #374151; border-radius: 16px; padding: 14px;
+      background: rgba(31, 41, 55, .72);
+    }
+    .settings-action { width: 100%; border-radius: 12px; padding: 14px; font-weight: 700; }
+    .risk-danger { color: #fecaca; border-color: #b91c1c; background: rgba(127, 29, 29, .55); }
+    .risk-caution { color: #fde68a; border-color: #b45309; background: rgba(120, 53, 15, .45); }
+    .risk-none { color: #bfdbfe; border-color: #1d4ed8; background: rgba(30, 58, 138, .4); }
+    .risk-unknown { color: #e5e7eb; border-color: #4b5563; background: rgba(31, 41, 55, .75); }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+
+  <!-- ================= شاشة الإعدادات ================= -->
+  <main id="settings-screen" class="p-4 flex flex-col min-h-screen max-w-xl mx-auto w-full" role="main" aria-labelledby="settings-heading">
+    <div class="w-full flex flex-col gap-4 pb-8">
+      <h1 id="settings-heading" tabindex="-1" class="text-2xl font-bold text-center text-blue-400">
+        سند — المساعد البصري المجاني (V15)
+      </h1>
+      <p class="text-base text-gray-200 leading-relaxed">
+        تطبيق إنساني مجاني يعمل دون دفع أي تكلفة: رصد الأجسام اليومية والعوائق، قراءة النصوص العربية والإنجليزية، كشف الإضاءة وتشغيل الكشاف تلقائياً في الظلام، قراءة الألوان، ترجمة النصوص، وقراءة فئة العملة المصرية بشكل استرشادي. لا تغني الأداة عن العصا البيضاء أو الحذر الشخصي.
+      </p>
+
+      <p id="settings-status" role="status" aria-live="polite"
+         class="rounded-xl border border-blue-800/70 bg-blue-950/30 p-3 text-sm font-medium text-blue-100 min-h-[3rem]">
+        اضغط «ابدأ الآن» للتشغيل المجاني الكامل دون مفتاح.
+      </p>
+
+      <button id="quick-start-button" type="button" onclick="startFreeMode()"
+              class="settings-action bg-green-700 hover:bg-green-600 active:bg-green-800 text-white"
+              style="min-height: 80px; font-size: 20px;"
+              aria-label="ابدأ الآن مجاناً بدون مفتاح وبدون تكلفة">
+        <span aria-hidden="true">▶ </span>ابدأ الآن (مجاني، بدون مفتاح)
+      </button>
+
+      <button id="setup-guide-button" type="button" onclick="speakSetupGuide()"
+              class="settings-action bg-indigo-700 hover:bg-indigo-600 active:bg-indigo-800 text-white text-lg">
+        <span aria-hidden="true">🔊 </span>استمع إلى شرح الاستخدام
+      </button>
+
+      <section class="settings-step" aria-labelledby="local-scan-heading">
+        <h2 id="local-scan-heading" class="text-lg font-bold text-emerald-300 mb-3">إعدادات المساعدة المحلية (مجانية بالكامل)</h2>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-start gap-3 rounded-xl border border-gray-700 p-3">
+            <input id="live-local-scan-checkbox" type="checkbox" checked aria-describedby="live-local-scan-help">
+            <div>
+              <label for="live-local-scan-checkbox" class="font-bold text-base text-white">1. رصد الأجسام المألوفة (أشخاص، سيارات، أثاث، أغراض)</label>
+              <p id="live-local-scan-help" class="text-sm text-gray-300 mt-1">يعمل محلياً بعد تنزيل النموذج أول مرة، ويحدد موضع الجسم (يمين/يسار/وسط) دون قياس المسافة.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3 rounded-xl border border-blue-800/60 bg-blue-950/20 p-3">
+            <input id="nav-mode-checkbox" type="checkbox" checked aria-describedby="nav-mode-help">
+            <div>
+              <label for="nav-mode-checkbox" class="font-bold text-base text-blue-200">2. تنبيهات الرصد المستمر — مساعدة إضافية فقط</label>
+              <p id="nav-mode-help" class="text-sm text-gray-300 mt-1">تنبيه عند رصد أجسام معروفة أمام الكاميرا. لا يكشف الحفر أو السلالم ولا يضمن خلو الطريق.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3 rounded-xl border border-gray-700 p-3">
+            <input id="spatial-audio-checkbox" type="checkbox" checked aria-describedby="spatial-audio-help">
+            <div>
+              <label for="spatial-audio-checkbox" class="font-bold text-base text-white">3. نغمات اتجاهية في سماعة الأذن (يمين / يسار / وسط)</label>
+              <p id="spatial-audio-help" class="text-sm text-gray-300 mt-1">صوت خفيف يحدد جهة الجسم في السماعة قبل التنبيه الصوتي.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3 rounded-xl border border-gray-700 p-3">
+            <input id="auto-torch-checkbox" type="checkbox" checked aria-describedby="auto-torch-help">
+            <div>
+              <label for="auto-torch-checkbox" class="font-bold text-base text-white">4. تشغيل الكشاف تلقائياً في الظلام عند القراءة</label>
+              <p id="auto-torch-help" class="text-sm text-gray-300 mt-1">عند قراءة نص أو عملة أو لون في غرفة مظلمة، يفتح الفلاش تلقائياً إن دعمه الهاتف.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <details class="settings-step">
+        <summary class="text-sm font-semibold text-gray-200" style="min-height:50px; display:flex; align-items:center; cursor:pointer;">
+          إضافة مفتاح Gemini المجاني (اختياري تماماً — بدون بطاقة بنكية)
+        </summary>
+        <div class="pt-3 flex flex-col gap-3">
+          <p class="text-sm text-gray-300 leading-relaxed">
+            يمكن لقريب أو متطوع إنشاء مفتاح مجاني بحساب Google عادي دون بطاقة بنكية. يضيف المفتاح: وصفاً دقيقاً للصور الصعبة، والإجابة عن الأسئلة الصوتية الحرة مثل: «ما اسم هذا الدواء؟».
+          </p>
+          <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer"
+             class="settings-action bg-blue-600 hover:bg-blue-700 text-white text-base flex items-center justify-center">
+            فتح صفحة مفاتيح Google AI Studio
+          </a>
+          <form class="flex flex-col gap-3" onsubmit="saveSettings(event)">
+            <label for="api-key-input" class="block text-base font-bold text-gray-100">مفتاح Gemini API (اختياري)</label>
+            <input id="api-key-input" type="password" autocomplete="off" dir="ltr" placeholder="AIza..."
+                   class="w-full p-3 bg-gray-800 border border-gray-600 rounded-xl text-white focus:outline-none focus:border-blue-500">
+            <div class="flex items-start gap-3 rounded-xl border border-gray-700 p-3">
+              <input id="remember-key-checkbox" type="checkbox" checked>
+              <label for="remember-key-checkbox" class="font-bold text-base">تذكّر المفتاح على هذا الجهاز الشخصي</label>
+            </div>
+            <label for="model-input" class="block text-sm font-bold text-gray-200">اختر النموذج (الكل له حصة مجانية):</label>
+            <select id="model-input" class="w-full min-h-[56px] p-3 bg-gray-800 border border-gray-600 rounded-xl text-white text-base">
+              <option value="gemini-3.8-flash">Gemini 3.8 Flash — الأفضل والأدق (موصى به)</option>
+              <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite — أسرع وأكبر حصة مجانية</option>
+              <option value="gemini-3.6-flash">Gemini 3.6 Flash — بديل سريع</option>
+            </select>
+            <button id="save-button" type="submit" class="settings-action bg-green-800 hover:bg-green-700 text-white">
+              التحقق من المفتاح وحفظه
+            </button>
+            <button type="button" onclick="forgetSavedKey()" class="settings-action bg-red-950 hover:bg-red-900 border border-red-800 text-red-100">
+              حذف المفتاح من هذا الجهاز
+            </button>
+          </form>
+        </div>
+      </details>
+
+      <p class="text-xs text-amber-200 leading-relaxed">
+        تنبيه سلامة: هذا التطبيق أداة مساعدة إضافية ولا يغني أبداً عن العصا البيضاء أو المساعدة البشرية عند عبور الطرق أو السلالم.
+      </p>
+    </div>
+  </main>
+
+  <!-- ================= الشاشة الرئيسية ================= -->
+  <div id="main-screen" class="hidden flex-1 flex flex-col">
+    <!-- شريط تحكم علوي سريع متوافق مع قارئ الشاشة -->
+    <div id="top-bar" role="toolbar" aria-label="أدوات التحكم السريعة">
+      <button id="stop-btn" type="button" onclick="stopSpeaking()" aria-label="إيقاف الصوت فوراً"
+              class="bg-red-950 hover:bg-red-900 active:bg-red-800 border border-red-800 text-red-100">
+        <span aria-hidden="true">⏹</span><span>اسكت</span>
+      </button>
+      <button id="torch-btn" type="button" onclick="toggleTorch()" aria-label="تشغيل أو إطفاء الكشاف"
+              class="bg-amber-950 hover:bg-amber-900 active:bg-amber-800 border border-amber-800 text-amber-100">
+        <span aria-hidden="true">🔦</span><span id="torch-label">الكشاف</span>
+      </button>
+      <button id="nav-toggle-btn" type="button" onclick="toggleNavModeFromButton()" aria-label="تشغيل أو إيقاف التنبيهات المستمرة"
+              class="bg-emerald-950 hover:bg-emerald-900 active:bg-emerald-800 border border-emerald-800 text-emerald-100">
+        <span aria-hidden="true">🧭</span><span id="nav-btn-label">رصد حي</span>
+      </button>
+      <button id="settings-btn" type="button" onclick="openSettings()" aria-label="فتح الإعدادات"
+              class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 border border-gray-700 text-gray-100">
+        <span aria-hidden="true">⚙️</span><span>الإعدادات</span>
+      </button>
+    </div>
+
+    <div class="relative flex-1 min-h-0">
+      <video id="camera-preview" autoplay playsinline muted aria-hidden="true"
+             class="absolute top-3 right-3 w-16 h-16 object-cover rounded-lg border border-gray-700 opacity-50 pointer-events-none z-10"></video>
+
+      <div class="absolute top-3 left-3 flex flex-col gap-1 z-10 pointer-events-none">
+        <div id="local-scanner-badge" class="bg-emerald-950/90 border border-emerald-700 text-emerald-200 text-xs font-bold px-2.5 py-1 rounded-full">رصد الأجسام: جارٍ التحضير...</div>
+        <div id="ocr-badge" class="bg-purple-950/90 border border-purple-700 text-purple-200 text-xs font-bold px-2.5 py-1 rounded-full hidden">قارئ النصوص: جاهز</div>
+        <div id="torch-badge" class="bg-amber-950/90 border border-amber-700 text-amber-200 text-xs font-bold px-2.5 py-1 rounded-full hidden">الكشاف: مضاء</div>
+      </div>
+
+      <canvas id="canvas" class="hidden" aria-hidden="true"></canvas>
+      <canvas id="probe-canvas" width="96" height="96" class="hidden" aria-hidden="true"></canvas>
+
+      <button id="capture-btn" type="button"
+              aria-label="صف ما حولي. المس مرة واحدة لوصف ما أمام الكاميرا."
+              class="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 bg-gray-900 active:bg-gray-800 transition-colors">
+        <span class="text-5xl" aria-hidden="true">👁️‍🗨️</span>
+        <span class="text-xl font-bold text-blue-300">صف ما حولي الآن</span>
+        <span id="nav-hint" class="text-xs text-emerald-300 px-6 text-center font-medium">تنبيهات الرصد مفعّلة — لا تغني عن العصا</span>
+        <span class="text-xs text-gray-400 px-6 text-center">المس هنا للوصف، أو اختر أداة مباشرة من الأسفل</span>
+      </button>
+
+      <div class="absolute bottom-0 inset-x-0 p-2.5 pointer-events-none z-20">
+        <div class="bg-gray-950/95 border border-gray-700 p-2.5 rounded-2xl text-center shadow-lg space-y-1.5">
+          <p id="risk-indicator" class="hidden border rounded-xl px-3 py-1.5 text-xs" aria-live="assertive"></p>
+          <p id="status-text" role="status" aria-live="polite" class="text-sm font-medium leading-relaxed text-gray-100">
+            جاهز. المس الشاشة للوصف، أو اختر: اقرأ النص، أمر صوتي، العملة، أو اللون والنور.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- لوحة الأدوات المباشرة (متوافقة 100% مع TalkBack بنقرة واحدة) -->
+    <div id="control-dock" role="navigation" aria-label="الأدوات الأساسية">
+      <button id="read-text-btn" type="button" onclick="readTextLocally()" aria-label="اقرأ النص المكتوب بالعربية أو الإنجليزية"
+              class="bg-purple-950 hover:bg-purple-900 active:bg-purple-800 border border-purple-800 transition">
+        <span class="control-icon" aria-hidden="true">📖</span><span>اقرأ النص</span>
+      </button>
+      <button id="voice-cmd-btn" type="button" onclick="activateVoiceCommands()" aria-label="أمر صوتي أو سؤال عن المشهد"
+              class="bg-blue-900 hover:bg-blue-800 active:bg-blue-700 border border-blue-600 transition">
+        <span class="control-icon" aria-hidden="true">🎤</span><span>أمر صوتي</span>
+      </button>
+      <button id="currency-btn" type="button" onclick="recognizeEgyptianCurrency()" aria-label="التعرف الاسترشادي على العملة المصرية"
+              class="bg-emerald-950 hover:bg-emerald-900 active:bg-emerald-800 border border-emerald-800 transition">
+        <span class="control-icon" aria-hidden="true">💵</span><span>العملة</span>
+      </button>
+      <button id="color-light-btn" type="button" onclick="readColorAndLightLocally()" aria-label="معرفة اللون ومستوى الإضاءة في الغرفة"
+              class="bg-sky-950 hover:bg-sky-900 active:bg-sky-800 border border-sky-800 transition">
+        <span class="control-icon" aria-hidden="true">🎨</span><span>اللون والنور</span>
+      </button>
+      <button id="translate-btn" type="button" onclick="translateLastTextToArabic()" aria-label="ترجمة آخر نص إنجليزي إلى العربية"
+              class="bg-indigo-950 hover:bg-indigo-900 active:bg-indigo-800 border border-indigo-800 transition">
+        <span class="control-icon" aria-hidden="true">🌐</span><span>ترجم للعربي</span>
+      </button>
+      <button id="repeat-btn" type="button" onclick="repeatLast()" aria-label="إعادة قراءة الوصف الأخير"
+              class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 border border-gray-700 transition">
+        <span class="control-icon" aria-hidden="true">🔁</span><span>أعد الوصف</span>
+      </button>
+    </div>
+  </div>
+
+<script>
+/* ==================== الإعدادات والثوابت ==================== */
+const LS_KEY = 'gemini_api_key', SS_KEY = 'gemini_api_key_session', LS_MODEL = 'gemini_model';
+const LS_LOCAL_SCAN = 's3aed_local_live_scan', LS_NAV_MODE = 's3aed_nav_mode';
+const LS_SPATIAL = 's3aed_spatial_audio', LS_AUTO_TORCH = 's3aed_auto_torch', LS_DESC_MODE = 's3aed_description_mode';
+const DEFAULT_MODEL = 'gemini-3.8-flash';
+
+const AVAILABLE_GEMINI_MODELS = Object.freeze({
+  'gemini-3.8-flash': { label: 'Gemini 3.8 Flash', thinkingLevel: 'low' },
+  'gemini-3.5-flash-lite': { label: 'Gemini 3.5 Flash-Lite', thinkingLevel: 'minimal' },
+  'gemini-3.6-flash': { label: 'Gemini 3.6 Flash', thinkingLevel: 'low' }
+});
+
+function readStorage(key, fallback) {
+  try { const v = localStorage.getItem(key); return v === null ? fallback : v; } catch (e) { return fallback; }
+}
+function writeStorage(key, value) {
+  try { localStorage.setItem(key, String(value)); } catch (e) {}
+}
+
+let apiKey = '';
+try { apiKey = sessionStorage.getItem(SS_KEY) || localStorage.getItem(LS_KEY) || ''; } catch (e) {}
+let modelName = AVAILABLE_GEMINI_MODELS[readStorage(LS_MODEL, '')] ? readStorage(LS_MODEL, DEFAULT_MODEL) : DEFAULT_MODEL;
+let descriptionMode = readStorage(LS_DESC_MODE, 'general') === 'detailed' ? 'detailed' : 'general';
+let localScanEnabled = readStorage(LS_LOCAL_SCAN, 'true') !== 'false';
+let navModeEnabled = readStorage(LS_NAV_MODE, 'true') !== 'false';
+let spatialAudioEnabled = readStorage(LS_SPATIAL, 'true') !== 'false';
+let autoTorchEnabled = readStorage(LS_AUTO_TORCH, 'true') !== 'false';
+
+let videoStream = null, isProcessing = false, lastDescription = '';
+let arabicVoice = null, wakeLock = null, assistantSpeaking = false;
+let recognition = null, isListening = false, tapTimer = null, tapCount = 0;
+let thinkingSupported = true, isVerifyingApiKey = false;
+let torchOn = false, torchSupported = false;
+
+let objectModel = null, objectModelFailed = false, isScanningFrame = false, hybridScanTimer = null;
+let lastHazardAlertKey = '', lastHazardAlertTime = 0;
+let ocrWorker = null, ocrLoading = false, lastRecognizedText = '';
+let barcodeDetector = null;
+try {
+  if ('BarcodeDetector' in window) barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code', 'ean_13', 'ean_8', 'upc_a', 'code_128'] });
+} catch (e) { barcodeDetector = null; }
+
+const MAX_DIM = 1024, TEXT_MAX_DIM = 1500, TIMEOUT_MS = 45000, DOUBLE_TAP_MS = 320;
+
+/* قائمة موسّعة بـ 46 جسماً يومياً ومرورياً من COCO-SSD لمساعدة الكفيف داخل المنزل والشارع */
+const LOCAL_OBJECT_MAP = Object.freeze({
+  'person': { ar: 'شخص', priority: 3 },
+  'car': { ar: 'سيارة', priority: 3 },
+  'bus': { ar: 'حافلة', priority: 3 },
+  'truck': { ar: 'شاحنة', priority: 3 },
+  'motorcycle': { ar: 'دراجة نارية', priority: 3 },
+  'bicycle': { ar: 'دراجة', priority: 3 },
+  'dog': { ar: 'كلب', priority: 3 },
+  'cat': { ar: 'قطة', priority: 2 },
+  'knife': { ar: 'سكين', priority: 3 },
+  'scissors': { ar: 'مقص', priority: 3 },
+  'fire hydrant': { ar: 'عائق أرضي', priority: 2 },
+  'stop sign': { ar: 'لافتة طريق', priority: 2 },
+  'traffic light': { ar: 'إشارة مرور', priority: 2 },
+  'chair': { ar: 'كرسي', priority: 2 },
+  'couch': { ar: 'أريكة', priority: 2 },
+  'dining table': { ar: 'طاولة', priority: 2 },
+  'bed': { ar: 'سرير', priority: 2 },
+  'bench': { ar: 'مقعد ثابت', priority: 2 },
+  'toilet': { ar: 'مرحاض', priority: 2 },
+  'sink': { ar: 'حوض', priority: 2 },
+  'refrigerator': { ar: 'ثلاجة', priority: 2 },
+  'oven': { ar: 'موقد أو فرن', priority: 2 },
+  'microwave': { ar: 'ميكروويف', priority: 1 },
+  'potted plant': { ar: 'أصيص زرع', priority: 2 },
+  'suitcase': { ar: 'حقيبة سفر', priority: 2 },
+  'backpack': { ar: 'حقيبة ظهر', priority: 1 },
+  'handbag': { ar: 'حقيبة يد', priority: 1 },
+  'umbrella': { ar: 'مظلة', priority: 1 },
+  'bottle': { ar: 'زجاجة', priority: 1 },
+  'cup': { ar: 'كوب', priority: 1 },
+  'bowl': { ar: 'طبق', priority: 1 },
+  'spoon': { ar: 'ملعقة', priority: 1 },
+  'fork': { ar: 'شوكة', priority: 1 },
+  'cell phone': { ar: 'هاتف محمول', priority: 1 },
+  'remote': { ar: 'جهاز تحكم ريموت', priority: 1 },
+  'laptop': { ar: 'لابتوب', priority: 1 },
+  'keyboard': { ar: 'لوحة مفاتيح', priority: 1 },
+  'tv': { ar: 'شاشة تلفاز', priority: 1 },
+  'book': { ar: 'كتاب أو دفتر', priority: 1 },
+  'clock': { ar: 'ساعة', priority: 1 },
+  'glasses': { ar: 'نظارة', priority: 1 },
+  'banana': { ar: 'موز', priority: 1 },
+  'apple': { ar: 'تفاح', priority: 1 },
+  'orange': { ar: 'برتقال', priority: 1 },
+  'vase': { ar: 'مزهرية', priority: 1 }
+});
+
+const SAFETY_PROMPT = `
+أنت مساعد بصري حنون وشديد الدقة لشخص فاقد للبصر في مصر. مهمتك وصف المشهد بوضوح وبالعربية الفصحى السهلة مع تحرٍّ شديد عن المخاطر الظاهرة.
+قواعد إلزامية:
+1) قدّم التحذير عن المخاطر الظاهرة قبل أي وصف عادي (سلالم، حفر، بالوعات، مركبات، زجاج، سكين، نار، أسطح مبللة، عوائق).
+2) لا تخترع خطراً غير ظاهر، ولا تؤكد أبداً أن الطريق آمن أو خالٍ.
+3) عند وجود طريق أو سيارات نبّه لعدم العبور اعتماداً على الصورة.
+4) الاتجاه يُنسب للصورة (يمين الصورة / يسار الصورة / وسط الصورة / أسفل).
+5) إذا كانت الصورة مظلمة أو مهزوزة أو غير واضحة صرّح بذلك في uncertainty واجعل risk_level = "يستلزم الحذر".
+6) أعد JSON مطابقاً للمخطط فقط بدون Markdown.
+`;
+
+const RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    risk_level: { type: 'string', enum: ['خطر ظاهر', 'يستلزم الحذر', 'لم يظهر خطر واضح في الصورة'] },
+    risk_summary: { type: 'string' },
+    hazards: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { category: { type: 'string' }, location: { type: 'string' }, details: { type: 'string' } },
+        required: ['category', 'location', 'details']
+      }
+    },
+    scene_description: { type: 'string' },
+    request_answer: { type: 'string' },
+    uncertainty: { type: 'string' }
+  },
+  required: ['risk_level', 'risk_summary', 'hazards', 'scene_description', 'request_answer', 'uncertainty']
+};
+
+/* ==================== العناصر ==================== */
+const settingsScreen = document.getElementById('settings-screen');
+const mainScreen = document.getElementById('main-screen');
+const apiKeyInput = document.getElementById('api-key-input');
+const modelInput = document.getElementById('model-input');
+const settingsStatus = document.getElementById('settings-status');
+const saveButton = document.getElementById('save-button');
+const rememberKeyCheckbox = document.getElementById('remember-key-checkbox');
+const liveLocalScanCheckbox = document.getElementById('live-local-scan-checkbox');
+const navModeCheckbox = document.getElementById('nav-mode-checkbox');
+const spatialAudioCheckbox = document.getElementById('spatial-audio-checkbox');
+const autoTorchCheckbox = document.getElementById('auto-torch-checkbox');
+const localScannerBadge = document.getElementById('local-scanner-badge');
+const ocrBadge = document.getElementById('ocr-badge');
+const torchBadge = document.getElementById('torch-badge');
+const torchBtn = document.getElementById('torch-btn');
+const torchLabel = document.getElementById('torch-label');
+const navHint = document.getElementById('nav-hint');
+const navBtnLabel = document.getElementById('nav-btn-label');
+const statusText = document.getElementById('status-text');
+const riskIndicator = document.getElementById('risk-indicator');
+const videoElement = document.getElementById('camera-preview');
+const canvas = document.getElementById('canvas');
+const probeCanvas = document.getElementById('probe-canvas');
+const captureBtn = document.getElementById('capture-btn');
+
+/* ربط خيارات الإعدادات */
+if (liveLocalScanCheckbox) {
+  liveLocalScanCheckbox.checked = localScanEnabled;
+  liveLocalScanCheckbox.addEventListener('change', () => {
+    localScanEnabled = liveLocalScanCheckbox.checked;
+    writeStorage(LS_LOCAL_SCAN, localScanEnabled);
+    if (localScanEnabled && navModeEnabled) startHybridLiveScanning(); else stopHybridLiveScanning();
+  });
+}
+if (navModeCheckbox) {
+  navModeCheckbox.checked = navModeEnabled;
+  navModeCheckbox.addEventListener('change', () => setNavMode(navModeCheckbox.checked, true));
+}
+if (spatialAudioCheckbox) {
+  spatialAudioCheckbox.checked = spatialAudioEnabled;
+  spatialAudioCheckbox.addEventListener('change', () => {
+    spatialAudioEnabled = spatialAudioCheckbox.checked;
+    writeStorage(LS_SPATIAL, spatialAudioEnabled);
+  });
+}
+if (autoTorchCheckbox) {
+  autoTorchCheckbox.checked = autoTorchEnabled;
+  autoTorchCheckbox.addEventListener('change', () => {
+    autoTorchEnabled = autoTorchCheckbox.checked;
+    writeStorage(LS_AUTO_TORCH, autoTorchEnabled);
+  });
+}
+
+function setNavMode(on, announce) {
+  navModeEnabled = !!on;
+  writeStorage(LS_NAV_MODE, navModeEnabled);
+  if (navModeCheckbox) navModeCheckbox.checked = navModeEnabled;
+  if (navBtnLabel) navBtnLabel.textContent = navModeEnabled ? 'رصد: نشط' : 'رصد: متوقف';
+  if (navHint) navHint.textContent = navModeEnabled
+    ? 'تنبيهات الأجسام مفعّلة (لا تغني عن العصا)'
+    : 'التنبيهات المستمرة متوقفة';
+  if (navModeEnabled && localScanEnabled) startHybridLiveScanning(); else stopHybridLiveScanning();
+  if (announce) speak(navModeEnabled ? 'تم تشغيل الرصد المستمر للأجسام.' : 'تم إيقاف الرصد المستمر.');
+}
+function toggleNavModeFromButton() { setNavMode(!navModeEnabled, true); }
+
+/* ==================== الصوت المنطوق والنغمات ==================== */
+function pickArabicVoice() {
+  if (!('speechSynthesis' in window)) return;
+  const voices = window.speechSynthesis.getVoices() || [];
+  arabicVoice = voices.find(v => /^ar[-_]eg/i.test(v.lang)) || voices.find(v => /^ar/i.test(v.lang)) || null;
+}
+if ('speechSynthesis' in window) { pickArabicVoice(); window.speechSynthesis.onvoiceschanged = pickArabicVoice; }
+
+function speak(text, interrupt = true) {
+  if (!('speechSynthesis' in window) || !text) return;
+  try {
+    if (interrupt) window.speechSynthesis.cancel();
+    assistantSpeaking = true;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = arabicVoice ? arabicVoice.lang : 'ar-EG';
+    if (arabicVoice) u.voice = arabicVoice;
+    u.rate = 0.97; u.pitch = 1.0;
+    u.onstart = () => { assistantSpeaking = true; };
+    u.onend = () => { assistantSpeaking = false; };
+    u.onerror = () => { assistantSpeaking = false; };
+    window.speechSynthesis.speak(u);
+  } catch (e) { assistantSpeaking = false; }
+}
+function stopSpeaking() {
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  assistantSpeaking = false;
+}
+
+let audioContext = null;
+function ensureAudioContext() {
+  if (!audioContext) {
+    try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+  }
+  if (audioContext && audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+  return audioContext;
+}
+function playSpatialBeep(side, urgent) {
+  if (!spatialAudioEnabled) return;
+  const ctx = ensureAudioContext(); if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    const panner = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    osc.type = 'sine';
+    osc.frequency.value = urgent ? 840 : 580;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(urgent ? 0.24 : 0.14, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (urgent ? 0.22 : 0.13));
+    if (panner) {
+      panner.pan.value = side === 'left' ? -0.92 : (side === 'right' ? 0.92 : 0);
+      osc.connect(gain); gain.connect(panner); panner.connect(ctx.destination);
+    } else {
+      osc.connect(gain); gain.connect(ctx.destination);
+    }
+    osc.start(); osc.stop(ctx.currentTime + 0.25);
+  } catch (e) {}
+}
+function playAckTone() {
+  const ctx = ensureAudioContext(); if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = 'triangle'; osc.frequency.value = 520;
+    g.gain.setValueAtTime(0.001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + 0.1);
+  } catch (e) {}
+}
+function vibrate(pattern) { try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {} }
+
+function updateStatus(text) { statusText.innerText = text; }
+function updateRiskIndicator(level) {
+  riskIndicator.className = 'border rounded-xl px-3 py-1.5 text-xs';
+  riskIndicator.classList.remove('hidden', 'risk-danger', 'risk-caution', 'risk-none', 'risk-unknown');
+  if (level === 'خطر ظاهر') {
+    riskIndicator.classList.add('risk-danger');
+    riskIndicator.innerText = 'تنبيه: يظهر في الصورة موضع يستحق الحذر الشديد';
+  } else if (level === 'يستلزم الحذر') {
+    riskIndicator.classList.add('risk-caution');
+    riskIndicator.innerText = 'انتبه: الصورة أو الرصد وحده لا يكفي للحكم بأمان الطريق';
+  } else if (level === 'لم يظهر خطر واضح في الصورة') {
+    riskIndicator.classList.add('risk-none');
+    riskIndicator.innerText = 'لم يُرصد عائق معروف في هذا الجزء؛ وهذا لا يؤكد خلو المكان';
+  } else {
+    riskIndicator.classList.add('risk-unknown');
+    riskIndicator.innerText = 'تعذر التحقق التام؛ تأكد بعصاك قبل التقدم';
+  }
+}
+function hideRiskIndicator() { riskIndicator.classList.add('hidden'); riskIndicator.innerText = ''; }
+
+/* ==================== الكاميرا والكشاف وتحليل الإضاءة ==================== */
+async function startCamera() {
+  if (videoStream) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    updateStatus('الكاميرا غير متاحة. يجب فتح التطبيق عبر رابط HTTPS.');
+    speak('الكاميرا غير متاحة'); return;
+  }
+  try {
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
+    });
+  } catch (e1) {
+    try { videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+    catch (e2) { updateStatus('تعذر الوصول للكاميرا. امنح الإذن من المتصفح.'); speak('تعذر الوصول إلى الكاميرا'); return; }
+  }
+  videoElement.srcObject = videoStream;
+  try { await videoElement.play(); } catch (e) {}
+  detectTorchSupport();
+}
+
+function detectTorchSupport() {
+  torchSupported = false; torchOn = false;
+  try {
+    const track = videoStream && videoStream.getVideoTracks()[0];
+    if (track && track.getCapabilities) {
+      const caps = track.getCapabilities();
+      torchSupported = !!(caps && caps.torch);
+    }
+  } catch (e) { torchSupported = false; }
+  if (torchBtn) torchBtn.style.opacity = torchSupported ? '1' : '0.45';
+  updateTorchUI();
+}
+
+function updateTorchUI() {
+  if (torchLabel) torchLabel.textContent = torchOn ? 'إطفاء' : 'الكشاف';
+  if (torchBadge) torchBadge.classList.toggle('hidden', !torchOn);
+}
+
+async function applyTorch(state, silent = false) {
+  if (!videoStream) return false;
+  const track = videoStream.getVideoTracks()[0];
+  if (!track || !track.applyConstraints || !torchSupported) return false;
+  try {
+    await track.applyConstraints({ advanced: [{ torch: !!state }] });
+    torchOn = !!state;
+    updateTorchUI();
+    if (!silent) speak(torchOn ? 'تم تشغيل الكشاف.' : 'تم إطفاء الكشاف.');
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function toggleTorch() {
+  if (!torchSupported) {
+    const m = 'الكشاف غير مدعوم في هذا المتصفح أو الجهاز.';
+    updateStatus(m); speak(m); return;
+  }
+  await applyTorch(!torchOn, false);
+}
+
+function stopCamera() {
+  torchOn = false; updateTorchUI();
+  if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  videoElement.srcObject = null;
+}
+
+/* قياس سطوع الصورة وحدّتها محلياً في < 3 مللي ثانية */
+function probeFrameQuality() {
+  const vw = videoElement.videoWidth, vh = videoElement.videoHeight;
+  if (!vw || !vh) return null;
+  const ctx = probeCanvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(videoElement, 0, 0, 96, 96);
+  const data = ctx.getImageData(0, 0, 96, 96).data;
+  let sumY = 0, edgeSum = 0;
+  const lum = new Float32Array(96 * 96);
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    const y = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    lum[p] = y; sumY += y;
+  }
+  for (let y = 1; y < 95; y++) {
+    for (let x = 1; x < 95; x++) {
+      const idx = y * 96 + x;
+      edgeSum += Math.abs(lum[idx] - lum[idx - 1]) + Math.abs(lum[idx] - lum[idx - 96]);
+    }
+  }
+  const meanY = sumY / (96 * 96);
+  const sharpness = edgeSum / (94 * 94);
+  let lightLabel = 'إضاءة جيدة';
+  if (meanY < 16) lightLabel = 'مظلم جداً أو العدسة مغطاة';
+  else if (meanY < 52) lightLabel = 'إضاءة خافتة';
+  else if (meanY > 225) lightLabel = 'إضاءة ساطعة جداً';
+  return {
+    meanY, sharpness, lightLabel,
+    isVeryDark: meanY < 16,
+    isDim: meanY < 55,
+    isOverexposed: meanY > 235,
+    isFlat: sharpness < 4.5
+  };
+}
+
+/* تشغيل الفلاش تلقائياً إذا كانت الغرفة مظلمة قبل التصوير الدقيق */
+async function ensureLightForCloseCapture() {
+  const q = probeFrameQuality();
+  if (!q) return { q: null, turnedOnTorch: false };
+  if (q.isDim && autoTorchEnabled && torchSupported && !torchOn) {
+    const ok = await applyTorch(true, true);
+    if (ok) {
+      await new Promise(r => setTimeout(r, 420)); // مهلة بسيطة لاستقرار الكاميرا مع الفلاش
+      return { q: probeFrameQuality(), turnedOnTorch: true };
+    }
+  }
+  return { q, turnedOnTorch: false };
+}
+
+/* ==================== رصد الأجسام المحلي (COCO-SSD) ==================== */
+async function initLocalObjectEngine() {
+  if (!localScanEnabled) {
+    if (localScannerBadge) localScannerBadge.textContent = 'رصد الأجسام: متوقف';
+    return;
+  }
+  if (objectModel) {
+    if (localScannerBadge) localScannerBadge.textContent = 'رصد الأجسام: نشط';
+    return;
+  }
+  if (typeof cocoSsd === 'undefined') {
+    objectModelFailed = true;
+    if (localScannerBadge) localScannerBadge.textContent = 'رصد الأجسام: تعذر التحميل';
+    return;
+  }
+  if (localScannerBadge) localScannerBadge.textContent = 'رصد الأجسام: جارٍ التحميل...';
+  try {
+    objectModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+    objectModelFailed = false;
+    if (localScannerBadge) localScannerBadge.textContent = 'رصد الأجسام: نشط';
+  } catch (err) {
+    objectModelFailed = true;
+    if (localScannerBadge) localScannerBadge.textContent = 'رصد الأجسام: غير متاح';
+  }
+}
+
+function getRelativePositionArabic(bbox, videoWidth) {
+  if (!bbox || !videoWidth) return 'في الوسط';
+  const ratio = (bbox[0] + bbox[2] / 2) / videoWidth;
+  if (ratio < 0.34) return 'على اليسار';
+  if (ratio > 0.66) return 'على اليمين';
+  return 'أمامك';
+}
+function sideFromPosition(pos) {
+  return pos === 'على اليسار' ? 'left' : (pos === 'على اليمين' ? 'right' : 'center');
+}
+
+function startHybridLiveScanning() {
+  if (!localScanEnabled || !navModeEnabled || hybridScanTimer) return;
+  initLocalObjectEngine();
+  hybridScanTimer = setInterval(async () => {
+    if (isProcessing || isListening || isScanningFrame || assistantSpeaking) return;
+    if (!videoElement || videoElement.paused || videoElement.ended || videoElement.videoWidth === 0) return;
+    if (!objectModel) return;
+    isScanningFrame = true;
+    try {
+      const predictions = await objectModel.detect(videoElement, 5, 0.60);
+      const objects = (predictions || [])
+        .filter(p => Object.prototype.hasOwnProperty.call(LOCAL_OBJECT_MAP, p.class))
+        .sort((a, b) => {
+          const pa = LOCAL_OBJECT_MAP[a.class].priority || 1;
+          const pb = LOCAL_OBJECT_MAP[b.class].priority || 1;
+          return (pb - pa) || ((b.score || 0) - (a.score || 0));
+        });
+      window.__lastNamedObjects = objects;
+      const top = objects[0];
+      if (top) {
+        const meta = LOCAL_OBJECT_MAP[top.class];
+        const pos = getRelativePositionArabic(top.bbox, videoElement.videoWidth);
+        const key = 'obj_' + top.class + '_' + pos;
+        const now = Date.now();
+        if (key !== lastHazardAlertKey || (now - lastHazardAlertTime) > 6500) {
+          lastHazardAlertKey = key; lastHazardAlertTime = now;
+          const side = sideFromPosition(pos);
+          const urgent = meta.priority >= 3;
+          playSpatialBeep(side, urgent);
+          vibrate(urgent ? [80, 60, 80] : [40]);
+          const msg = meta.ar + ' ' + pos + '. المسافة غير مقاسة؛ تحقّق بعصاك.';
+          updateStatus(msg);
+          updateRiskIndicator(urgent ? 'يستلزم الحذر' : 'لم يظهر خطر واضح في الصورة');
+          speak(msg, true);
+        }
+      }
+    } catch (e) {
+      // صامت في الخلفية كي لا يزعج المستخدم إلا عند الطلب اليدوي
+    } finally { isScanningFrame = false; }
+  }, 1100);
+}
+function stopHybridLiveScanning() { if (hybridScanTimer) { clearInterval(hybridScanTimer); hybridScanTimer = null; } }
+
+/* ==================== التقاط الصورة وقراءة النصوص التدرّجية ==================== */
+function captureFrame(maxDim, quality) {
+  const vw = videoElement.videoWidth, vh = videoElement.videoHeight;
+  if (!vw || !vh) throw new Error('الكاميرا لم تجهز بعد. انتظر لحظة.');
+  const scale = Math.min(1, maxDim / Math.max(vw, vh));
+  canvas.width = Math.max(1, Math.round(vw * scale));
+  canvas.height = Math.max(1, Math.round(vh * scale));
+  const ctx = canvas.getContext('2d', { alpha: false });
+  if (!ctx) throw new Error('تعذر تجهيز الصورة.');
+  ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', quality).split(',')[1];
+}
+
+function makeEnhancedGrayscaleCanvas(sourceCanvas, thresholdMode = false) {
+  const out = document.createElement('canvas');
+  const scale = Math.min(1.6, Math.max(1.0, 1800 / Math.max(sourceCanvas.width, sourceCanvas.height)));
+  out.width = Math.max(1, Math.round(sourceCanvas.width * scale));
+  out.height = Math.max(1, Math.round(sourceCanvas.height * scale));
+  const ctx = out.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(sourceCanvas, 0, 0, out.width, out.height);
+  const frame = ctx.getImageData(0, 0, out.width, out.height), d = frame.data;
+  let sum = 0, count = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    const v = Math.max(0, Math.min(255, (y - 128) * 1.32 + 132));
+    d[i] = d[i + 1] = d[i + 2] = v;
+    if ((i & 15) === 0) { sum += v; count++; }
+  }
+  if (thresholdMode) {
+    const mean = count ? sum / count : 145;
+    const th = Math.max(95, Math.min(200, mean - 10));
+    for (let i = 0; i < d.length; i += 4) {
+      const b = d[i] > th ? 255 : 0;
+      d[i] = d[i + 1] = d[i + 2] = b; d[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(frame, 0, 0);
+  return out;
+}
+
+async function ensureOcrWorker() {
+  if (ocrWorker) return ocrWorker;
+  if (ocrLoading || typeof Tesseract === 'undefined') return null;
+  ocrLoading = true;
+  try {
+    updateStatus('جارٍ تنزيل محرك القراءة العربية لأول مرة...');
+    speak('جارٍ تحميل قارئ النصوص لأول مرة، انتظر قليلاً.');
+    ocrWorker = await Tesseract.createWorker('ara+eng', 1, {
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0', gzip: true,
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          updateStatus('جارٍ قراءة النص: ' + Math.round((m.progress || 0) * 100) + '%');
+        }
+      }
+    });
+    if (ocrBadge) { ocrBadge.classList.remove('hidden'); ocrBadge.textContent = 'قارئ النصوص: جاهز'; }
+    return ocrWorker;
+  } catch (e) { ocrWorker = null; return null; }
+  finally { ocrLoading = false; }
+}
+
+/* تمريرتان سريعتان فقط بدل 6 تمريرات للحفاظ على سرعة وذاكرة الهواتف الضعيفة */
+async function fastProgressiveOcr(worker, sourceCanvas) {
+  const pass1Img = makeEnhancedGrayscaleCanvas(sourceCanvas, false);
+  await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1', user_defined_dpi: '300' });
+  const r1 = await worker.recognize(pass1Img);
+  const d1 = (r1 && r1.data) ? r1.data : { text: '', confidence: 0 };
+  const t1 = String(d1.text || '').trim();
+  const c1 = Number(d1.confidence) || 0;
+  if (t1.length >= 10 && c1 >= 70) return { data: d1, text: t1, confidence: c1 };
+
+  // المحاولة الثانية فقط إذا كانت الأولى ضعيفة (مفيدة للعلب واللافتات المتفرقة)
+  const pass2Img = makeEnhancedGrayscaleCanvas(sourceCanvas, true);
+  await worker.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1', user_defined_dpi: '300' });
+  const r2 = await worker.recognize(pass2Img);
+  const d2 = (r2 && r2.data) ? r2.data : { text: '', confidence: 0 };
+  const t2 = String(d2.text || '').trim();
+  const c2 = Number(d2.confidence) || 0;
+
+  const score1 = c1 + Math.min(8, t1.length / 40);
+  const score2 = c2 + Math.min(8, t2.length / 40);
+  return score2 > score1 ? { data: d2, text: t2, confidence: c2 } : { data: d1, text: t1, confidence: c1 };
+}
+
+function cleanOcrOutput(raw) {
+  return String(raw || '').replace(/[|_~`]+/g, ' ').replace(/\u0640/g, '').replace(/\s+/g, ' ').trim();
+}
+
+async function readTextLocally() {
+  if (isProcessing) { updateStatus('انتظر قليلاً حتى ينتهي الطلب الحالي.'); return; }
+  isProcessing = true; hideRiskIndicator(); vibrate(35); playAckTone();
+  try {
+    const light = await ensureLightForCloseCapture();
+    if (light.q && light.q.isVeryDark && !light.turnedOnTorch) {
+      const m = 'الصورة مظلمة جداً أو هناك إصبع يغطي الكاميرا. تأكد من كشف العدسة أو افتح الإضاءة.';
+      updateStatus(m); speak(m); return;
+    }
+
+    // فحص سريع مجاني إن كان هناك باركود أو QR في الصورة
+    let qrFound = '';
+    if (barcodeDetector) {
+      try {
+        const codes = await barcodeDetector.detect(videoElement);
+        if (codes && codes.length && codes[0].rawValue) qrFound = String(codes[0].rawValue).trim();
+      } catch (e) {}
+    }
+
+    const worker = await ensureOcrWorker();
+    if (!worker) {
+      if (qrFound) {
+        const m = 'رمز الباركود أو QR يحتوي على: ' + qrFound;
+        lastDescription = m; updateStatus(m); speak(m); return;
+      }
+      const msg = 'تعذر تحميل قارئ النصوص. يلزم اتصال بالإنترنت في المرة الأولى فقط.';
+      updateStatus(msg); speak(msg); return;
+    }
+
+    captureFrame(TEXT_MAX_DIM, 0.92);
+    updateStatus('جارٍ قراءة النص محلياً...');
+    const res = await fastProgressiveOcr(worker, canvas);
+    const text = cleanOcrOutput(res.text);
+    lastRecognizedText = text;
+
+    let spoken;
+    if (!text && qrFound) {
+      spoken = 'قرأت رمز QR أو باركود برقم أو رابط: ' + qrFound;
+    } else if (!text) {
+      spoken = (light.q && light.q.isFlat)
+        ? 'الصورة غير مركّزة أو قريبة جداً. أبعد الهاتف قليلاً قدر شبر وثبّته.'
+        : 'لم يظهر نص واضح. ثبّت الورقة في الإضاءة وأبعد الهاتف نحو 25 سنتيمتراً ثم أعد المحاولة.';
+    } else {
+      const hasEnglish = /[A-Za-z]{4,}/.test(text) && !/[\u0600-\u06FF]{4,}/.test(text);
+      spoken = text;
+      if (res.confidence < 60) spoken += '. ملاحظة: القراءة غير واضحة تماماً وقد تحتوي أخطاء.';
+      if (hasEnglish) spoken += '. هذا النص بالإنجليزية؛ يمكنك الضغط على زر ترجم للعربي.';
+      if (qrFound) spoken += '. ومعه رمز باركود: ' + qrFound;
+    }
+    lastDescription = spoken;
+    updateStatus(spoken); speak(spoken);
+  } catch (e) {
+    const msg = 'تعذرت قراءة النص الآن. حاول مرة أخرى.';
+    updateStatus(msg); speak(msg);
+  } finally { isProcessing = false; }
+}
+
+/* ==================== الألوان وكشف الإضاءة ==================== */
+function classifyPixelColor(r, g, b) {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
+  const v = max / 255, s = max === 0 ? 0 : delta / max;
+  if (v < 0.14) return 'أسود أو داكن جداً';
+  if (s < 0.14) return v > 0.85 ? 'أبيض أو فاتح جداً' : (v > 0.55 ? 'رمادي فاتح' : 'رمادي غامق');
+  let h = 0;
+  if (max === r) h = ((g - b) / delta) % 6;
+  else if (max === g) h = (b - r) / delta + 2;
+  else h = (r - g) / delta + 4;
+  h = (h * 60 + 360) % 360;
+  if (h < 12 || h >= 345) return v < 0.45 ? 'أحمر غامق أو نبيتي' : 'أحمر';
+  if (h < 32) return (v < 0.58 && s < 0.72) ? 'بني' : 'برتقالي';
+  if (h < 58) return (v > 0.75 && s < 0.45) ? 'بيج أو كريمي' : 'أصفر أو ذهبي';
+  if (h < 90) return v < 0.52 ? 'زيتوني' : 'أخضر فاتح';
+  if (h < 165) return v < 0.42 ? 'أخضر غامق' : 'أخضر';
+  if (h < 198) return 'تركوازي';
+  if (h < 252) return v < 0.42 ? 'كحلي أو أزرق غامق' : (v > 0.80 ? 'سماوي' : 'أزرق');
+  if (h < 292) return 'بنفسجي';
+  return 'وردي أو أرجواني';
+}
+
+function sampleCenterColor() {
+  captureFrame(640, 0.9);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const w = canvas.width, h = canvas.height;
+  const x = Math.floor(w * 0.36), y = Math.floor(h * 0.36);
+  const rw = Math.max(1, Math.floor(w * 0.28)), rh = Math.max(1, Math.floor(h * 0.28));
+  const data = ctx.getImageData(x, y, rw, rh).data;
+  const counts = new Map(); let n = 0;
+  for (let i = 0; i < data.length; i += 16) {
+    const r = data[i], g = data[i + 1], b = data[i + 2], mx = Math.max(r, g, b);
+    if (mx > 252 || mx < 10) continue;
+    const name = classifyPixelColor(r, g, b);
+    counts.set(name, (counts.get(name) || 0) + 1); n++;
+  }
+  if (n < 10) return null;
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  return ranked.length ? { primary: ranked[0][0], secondary: ranked[1] ? ranked[1][0] : null, ratio: ranked[0][1] / n } : null;
+}
+
+async function readColorAndLightLocally() {
+  if (isProcessing) return;
+  isProcessing = true; vibrate(35); playAckTone();
+  try {
+    const light = await ensureLightForCloseCapture();
+    const q = light.q;
+    if (q && q.isVeryDark && !light.turnedOnTorch) {
+      const m = 'المكان مظلم تماماً أو هناك شيء يغطي الكاميرا. إن كنت تفحص الإضاءة، فالنور مطفأ.';
+      lastDescription = m; updateStatus(m); speak(m); return;
+    }
+    const col = sampleCenterColor();
+    let msg = '';
+    if (col) {
+      msg = 'اللون الغالب في المنتصف يبدو ' + col.primary;
+      if (col.ratio < 0.45 && col.secondary) msg += ' مع درجات من ' + col.secondary;
+      msg += '. ';
+    } else {
+      msg = 'الألوان في منتصف الصورة غير واضحة. ';
+    }
+    if (q) msg += 'حالة النور في المكان: ' + q.lightLabel + '. ';
+    msg += 'تقدير اللون قد يتأثر بظلال المكان.';
+    lastDescription = msg; updateStatus(msg); speak(msg);
+  } catch (e) {
+    const m = 'تعذر قياس اللون والإضاءة الآن.';
+    updateStatus(m); speak(m);
+  } finally { isProcessing = false; }
+}
+
+/* ==================== العملة المصرية (سريع وهجين بأمان) ==================== */
+function normalizeOcrDigitsAndArabic(v) {
+  return String(v || '').normalize('NFKC')
+    .replace(/[\u064B-\u065F\u0670ـ]/g, '')
+    .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي')
+    .replace(/[٠-٩]/g, c => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c)))
+    .replace(/[،؛:|]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+const EGP_RULES = [
+  { value: 200, words: ['مئتان', 'مائتان', 'مائتين', 'مئتي', 'two hundred'], colorHints: ['زيتوني', 'بني', 'أصفر أو ذهبي', 'بيج أو كريمي'] },
+  { value: 100, words: ['مائه', 'مئه', 'مائة', 'مئة', 'one hundred'], colorHints: ['وردي أو أرجواني', 'أحمر غامق أو نبيتي', 'رمادي فاتح', 'بيج أو كريمي'] },
+  { value: 50,  words: ['خمسون', 'خمسين', 'fifty'], colorHints: ['بني', 'أحمر غامق أو نبيتي', 'برتقالي', 'بيج أو كريمي'] },
+  { value: 20,  words: ['عشرون', 'عشرين', 'twenty'], colorHints: ['أخضر', 'أخضر فاتح', 'تركوازي', 'سماوي'] },
+  { value: 10,  words: ['عشره', 'عشرة', 'ten'], colorHints: ['برتقالي', 'بني', 'أحمر', 'بيج أو كريمي'] },
+  { value: 5,   words: ['خمسه', 'خمسة', 'five'], colorHints: ['تركوازي', 'أخضر', 'سماوي', 'أزرق'] }
+];
+
+function inferEgyptianDenomination(raw, colorSample) {
+  const t = normalizeOcrDigitsAndArabic(raw);
+  const currencyCue = /(جنيه|جنيها|جنيهات|البنك|المركزي|مصر|egypt|egp|pounds|central bank)/.test(t);
+  const found = new Set();
+  for (const d of EGP_RULES) {
+    const numeric = new RegExp('(?:^|\\D)' + d.value + '(?:\\D|$)').test(t);
+    const word = d.words.some(w => t.includes(normalizeOcrDigitsAndArabic(w)));
+    if (numeric || word) found.add(d.value);
+  }
+  if (found.size === 1) {
+    const val = [...found][0];
+    if (currencyCue) return { value: val, confidenceLevel: 'medium', reason: '' };
+    // إذا قرأ رقماً واحداً دون كلمة "جنيه"، نستأنس باللون السائد كقرينة دعم فقط
+    const rule = EGP_RULES.find(r => r.value === val);
+    if (colorSample && rule && rule.colorHints.includes(colorSample.primary)) {
+      return { value: val, confidenceLevel: 'low', reason: 'لم تُقرأ كلمة جنيه بوضوح لكن اللون يرجّح الفئة.' };
+    }
+    return { value: null, confidenceLevel: 'none', reason: 'ظهر الرقم ' + val + ' دون تأكيد أنه عملة مصرية.' };
+  }
+  if (found.size > 1) return { value: null, confidenceLevel: 'none', reason: 'ظهرت أكثر من فئة في النص ولا أستطيع الجزم.' };
+  return { value: null, confidenceLevel: 'none', reason: 'لم أقرأ أرقاماً واضحة للعملة.' };
+}
+
+async function recognizeEgyptianCurrency() {
+  if (isProcessing) { updateStatus('انتظر قليلاً حتى ينتهي الطلب الحالي.'); return; }
+  isProcessing = true; hideRiskIndicator(); vibrate(35); playAckTone();
+  try {
+    const light = await ensureLightForCloseCapture();
+    if (light.q && light.q.isVeryDark && !light.turnedOnTorch) {
+      const m = 'الإضاءة مظلمة جداً للتعرف على العملة. افتح الإضاءة أو الكشاف وأعد المحاولة.';
+      updateStatus(m); speak(m); return;
+    }
+    const worker = await ensureOcrWorker();
+    if (!worker) {
+      const m = 'تعذر تحميل قارئ العربية. يلزم إنترنت أول مرة لتنزيل المحرك.';
+      updateStatus(m); speak(m); return;
+    }
+
+    updateStatus('جارٍ فحص الورقة النقدية...');
+    captureFrame(TEXT_MAX_DIM, 0.93);
+    const colorHint = sampleCenterColor();
+
+    // المحاولة 1: الورقة كاملة
+    const r1 = await fastProgressiveOcr(worker, canvas);
+    let analysis = inferEgyptianDenomination(r1.text, colorHint);
+    let bestConf = r1.confidence;
+
+    // المحاولة 2 فقط عند عدم الجزم: قص وسط الورقة (لتفادي الخلفية)
+    if (!analysis.value) {
+      const crop = document.createElement('canvas');
+      crop.width = Math.max(1, Math.floor(canvas.width * 0.86));
+      crop.height = Math.max(1, Math.floor(canvas.height * 0.64));
+      const cctx = crop.getContext('2d', { willReadFrequently: true });
+      cctx.drawImage(canvas, Math.floor(canvas.width * 0.07), Math.floor(canvas.height * 0.18), crop.width, crop.height, 0, 0, crop.width, crop.height);
+      const r2 = await fastProgressiveOcr(worker, crop);
+      analysis = inferEgyptianDenomination(r1.text + ' ' + r2.text, colorHint);
+      bestConf = Math.max(bestConf, r2.confidence);
+    }
+
+    let msg;
+    if (analysis.value && (bestConf >= 64 || analysis.confidenceLevel === 'medium')) {
+      msg = 'تقدير أولي من النص: قد تكون ' + analysis.value + ' جنيه مصري.';
+      if (analysis.confidenceLevel === 'low') msg += ' ' + analysis.reason;
+      msg += ' هذه قراءة استرشادية وليست تحققاً مالياً؛ تأكد بالملمس أو مع شخص موثوق عند الدفع.';
+    } else {
+      msg = 'لم أستطع تحديد فئة الورقة بثقة. ' + analysis.reason + ' افرد الورقة كاملة بعيداً عن اللمعان على مسافة شبر وأعد المحاولة.';
+    }
+    lastDescription = msg; updateStatus(msg); speak(msg);
+  } catch (e) {
+    const m = 'تعذر فحص العملة الآن. حاول تثبيت الورقة وإعادة التصوير.';
+    updateStatus(m); speak(m);
+  } finally { isProcessing = false; }
+}
+
+/* ==================== الترجمة العربية بموافقة المستخدم ==================== */
+async function translateLastTextToArabic() {
+  if (isProcessing) return;
+  if (!lastRecognizedText) {
+    const m = 'اقرأ نصاً إنجليزياً أولاً بزر اقرأ النص، ثم اضغط ترجم للعربي.';
+    updateStatus(m); speak(m); return;
+  }
+  const source = lastRecognizedText.trim();
+  if (!/[A-Za-z]{2}/.test(source)) {
+    const m = 'النص الأخير ليس إنجليزياً. اقرأ نصاً إنجليزياً أولاً.';
+    updateStatus(m); speak(m); return;
+  }
+  const accepted = window.confirm('لترجمة النص للعربية سيُرسل النص المقروء عبر الإنترنت. لا ترسل كلمات سر أو بيانات بنكية. هل توافق؟');
+  if (!accepted) return;
+  isProcessing = true;
+  try {
+    updateStatus('جارٍ ترجمة النص إلى العربية...');
+    const chunks = source.match(/[\s\S]{1,420}/g) || [source], translated = [];
+    for (const chunk of chunks) {
+      const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=' + encodeURIComponent(chunk);
+      const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 16000);
+      try {
+        const res = await fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit', cache: 'no-store', signal: ctrl.signal });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const payload = await res.json();
+        const part = Array.isArray(payload) && Array.isArray(payload[0]) ? payload[0].map(x => (x && x[0]) || '').join('') : '';
+        if (part) translated.push(part);
+      } finally { clearTimeout(timer); }
+    }
+    const result = translated.join(' ').trim();
+    if (!result) throw new Error('empty');
+    const msg = 'الترجمة: ' + result;
+    lastDescription = msg; updateStatus(msg); speak(msg);
+  } catch (e) {
+    const m = 'تعذرت الترجمة الآن. تأكد من اتصال الإنترنت.';
+    updateStatus(m); speak(m);
+  } finally { isProcessing = false; }
+}
+
+/* ==================== وصف المشهد (محلي مجاني + Gemini اختياري) ==================== */
+function buildLocalSpoken(objects, lightQuality, modelRan) {
+  const parts = [];
+  if (lightQuality && lightQuality.isVeryDark) {
+    updateRiskIndicator('تعذر التحقق');
+    return 'الصورة مظلمة جداً أو العدسة مغطاة. شغّل الكشاف أو تأكد من عدم وجود إصبع على الكاميرا.';
+  }
+  if (!modelRan) {
+    updateRiskIndicator('تعذر التحقق');
+    return 'نموذج رصد الأجسام ما زال قيد التحميل أو غير متاح؛ لا يمكنني فحص المشهد حالياً.';
+  }
+  const hasHighRisk = (objects || []).some(p => (LOCAL_OBJECT_MAP[p.class]?.priority || 1) >= 3);
+  updateRiskIndicator(hasHighRisk ? 'يستلزم الحذر' : 'لم يظهر خطر واضح في الصورة');
+
+  const items = (objects || []).slice(0, 4).map(p => {
+    const ar = LOCAL_OBJECT_MAP[p.class]?.ar || 'جسم';
+    return ar + ' ' + getRelativePositionArabic(p.bbox, videoElement.videoWidth);
+  });
+  if (items.length) parts.push(items.length === 1 ? 'أمام الكاميرا: ' + items[0] + '.' : 'أمام الكاميرا: ' + items.join('، ') + '.');
+  else parts.push('لم أرصد أجساماً مألوفة في هذه اللقطة.');
+
+  if (lightQuality && lightQuality.isDim) parts.push('الإضاءة خافتة.');
+  parts.push('لا يقيس هذا الرصد المسافات ولا يكشف الحفر؛ استعن بعصاك دائماً.');
+  return parts.join(' ');
+}
+
+async function captureAndAnalyze(customQuestion = null) {
+  if (isProcessing) { updateStatus('انتظر انتهاء الطلب الحالي.'); vibrate([35, 60, 35]); return; }
+  if (isListening) stopVoiceRecognition();
+  isProcessing = true; hideRiskIndicator(); vibrate(35); playAckTone();
+  updateStatus(customQuestion ? 'جارٍ الإجابة عن سؤالك...' : 'جارٍ فحص المشهد...');
+  try {
+    const q = probeFrameQuality();
+    let objects = [];
+    let modelRan = false;
+    if (localScanEnabled && objectModel && videoElement.videoWidth > 0) {
+      const preds = await objectModel.detect(videoElement, 6, 0.52);
+      modelRan = true;
+      objects = (preds || []).filter(p => Object.prototype.hasOwnProperty.call(LOCAL_OBJECT_MAP, p.class));
+      objects.sort((a, b) => (b.bbox[2] * b.bbox[3]) - (a.bbox[2] * a.bbox[3]));
+      window.__lastNamedObjects = objects;
+    }
+
+    let spoken;
+    if (apiKey) {
+      speak(customQuestion ? 'جارٍ البحث عن الإجابة.' : 'جارٍ تحليل الصورة.');
+      try {
+        const base64 = captureFrame(MAX_DIM, 0.82);
+        const promptInstruction = customQuestion
+          ? ('أجب عن سؤال المستخدم بدقة ووضوح من خلال الصورة: ' + customQuestion)
+          : 'صف المشهد وفق وضع الوصف المختار.';
+        const analysis = await describeImage(base64, promptInstruction, !!customQuestion);
+        spoken = buildGeminiSpoken(analysis, !!customQuestion);
+      } catch (err) {
+        spoken = buildLocalSpoken(objects, q, modelRan);
+        if (customQuestion) spoken = 'تعذر الاتصال بالوصف السحابي الآن. محلياً: ' + spoken;
+      }
+    } else {
+      spoken = buildLocalSpoken(objects, q, modelRan);
+      if (customQuestion) {
+        spoken = 'الأسئلة الحرة تحتاج مفتاح Gemini المجاني الاختياري. محلياً ' + spoken;
+      }
+    }
+    lastDescription = spoken; updateStatus(spoken); speak(spoken);
+  } catch (e) {
+    const msg = (e && e.message) ? e.message : 'تعذر فحص المشهد الآن.';
+    updateRiskIndicator('تعذر التحقق'); updateStatus(msg); speak(msg);
+  } finally { isProcessing = false; }
+}
+
+/* ==================== Gemini السحابي (اختياري ومجاني بحصة يومية) ==================== */
+function cleanText(v) { return String(v || '').replace(/[*#_`>]/g, '').replace(/\s+/g, ' ').trim(); }
+
+function buildGeminiSpoken(data, isQuestion) {
+  const level = ['خطر ظاهر', 'يستلزم الحذر', 'لم يظهر خطر واضح في الصورة'].includes(data.risk_level) ? data.risk_level : 'يستلزم الحذر';
+  updateRiskIndicator(level);
+  const hazards = (Array.isArray(data.hazards) ? data.hazards : []).slice(0, 4)
+    .map(h => cleanText(h.category || 'عائق') + ' في ' + cleanText(h.location || 'الصورة') + ': ' + cleanText(h.details || ''));
+  const parts = [];
+  if (level === 'خطر ظاهر') {
+    parts.push('تحذير: يوجد موضع خطر في الصورة.');
+    if (data.risk_summary) parts.push(cleanText(data.risk_summary));
+    if (hazards.length) parts.push(hazards.join('. '));
+  } else if (level === 'يستلزم الحذر' && !isQuestion) {
+    parts.push('انتبه، الصورة غير كافية للجزم بالأمان.');
+    if (hazards.length) parts.push(hazards.join('. '));
+  }
+  if (isQuestion && data.request_answer) parts.push(cleanText(data.request_answer));
+  if (data.scene_description && (!isQuestion || !data.request_answer)) parts.push(cleanText(data.scene_description));
+  if (data.uncertainty) parts.push('ملاحظة: ' + cleanText(data.uncertainty));
+  return parts.filter(Boolean).join(' ') || 'لم أتمكن من تكوين وصف واضح.';
+}
+
+function thinkingConfigForModel(m) {
+  const x = AVAILABLE_GEMINI_MODELS[m];
+  return x && x.thinkingLevel ? { thinkingLevel: x.thinkingLevel } : null;
+}
+
+async function describeImage(base64, instruction, isQuestion = false) {
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelName) + ':generateContent';
+  const generationConfig = {
+    maxOutputTokens: (descriptionMode === 'detailed' || isQuestion) ? 900 : 520,
+    responseMimeType: 'application/json',
+    responseJsonSchema: RESPONSE_SCHEMA
+  };
+  if (thinkingSupported) {
+    const tc = thinkingConfigForModel(modelName);
+    if (tc) generationConfig.thinkingConfig = tc;
+  }
+  const prompt = SAFETY_PROMPT + '\nطلب المستخدم: ' + instruction + '\n' +
+    (descriptionMode === 'detailed' ? 'صف المشهد في 4 إلى 6 جمل واضحة.' : 'قدم خلاصة مركزة من جملة إلى 3 جمل.');
+  const payload = { contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: 'image/jpeg', data: base64 } }] }], generationConfig };
+  const c = new AbortController(), t = setTimeout(() => c.abort(), TIMEOUT_MS);
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify(payload),
+      signal: c.signal
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const m = d && d.error && d.error.message ? d.error.message : '';
+      if (r.status === 400 && thinkingSupported && /thinking/i.test(m)) {
+        thinkingSupported = false; return describeImage(base64, instruction, isQuestion);
+      }
+      throw new Error('HTTP ' + r.status);
+    }
+    const parts = d?.candidates?.[0]?.content?.parts || [];
+    const raw = parts.map(p => p.text).filter(Boolean).join('').trim();
+    if (!raw) throw new Error('empty response');
+    return JSON.parse(raw);
+  } finally { clearTimeout(t); }
+}
+
+/* ==================== الأوامر الصوتية المحسّنة للهجة المصرية ==================== */
+function getSpeechRecognitionConstructor() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; }
+function stopVoiceRecognition() {
+  if (recognition) {
+    try { recognition.onresult = null; recognition.onerror = null; recognition.onend = null; recognition.stop(); } catch (e) {}
+  }
+  recognition = null; isListening = false;
+}
+function normalizeArabicCommand(text) {
+  return String(text || '').normalize('NFKC').toLowerCase()
+    .replace(/[\u064B-\u065F\u0670ـ]/g, '').replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[؟?!،,.؛:]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function removePolitePhrases(v) {
+  return v.replace(/^(يا سند|يا مساعدي?|من فضلك|لو سمحت|بعد اذنك|ممكن)\s+/, '')
+    .replace(/\s+(من فضلك|لو سمحت|بعد اذنك)$/, '').trim();
+}
+
+function parseVoiceCommand(raw) {
+  const n = removePolitePhrases(normalizeArabicCommand(raw));
+  if (!n) return null;
+  const exact = (phrases, type) => new Set(phrases.map(normalizeArabicCommand)).has(n) ? { type } : null;
+
+  let p = exact(['توقف', 'اوقف الصوت', 'وقف الصوت', 'اسكت', 'بس'], 'stop'); if (p) return p;
+  p = exact(['تشغيل الملاحه', 'شغل الملاحه', 'شغل الرصد', 'ابدا الرصد'], 'navOn'); if (p) return p;
+  p = exact(['ايقاف الملاحه', 'وقف الملاحه', 'وقف الرصد', 'اطفي الرصد'], 'navOff'); if (p) return p;
+  p = exact(['شغل الكشاف', 'افتح الكشاف', 'شغل الفلاش', 'افتح الفلاش', 'نور الكشاف'], 'torchOn'); if (p) return p;
+  p = exact(['اطفي الكشاف', 'اقفل الكشاف', 'اطفي الفلاش', 'اقفل الفلاش'], 'torchOff'); if (p) return p;
+  p = exact(['اعد الوصف', 'اعيد الوصف', 'كرر الوصف', 'اعد', 'تاني'], 'repeat'); if (p) return p;
+  p = exact(['صف ما حولي', 'اوصف ما حولي', 'ماذا امامي', 'ما امامي', 'ايه قدامي', 'ايه اللي قدامي', 'صف المكان'], 'describe'); if (p) return p;
+  p = exact(['اقرا لي', 'اقرا', 'اقرا النص', 'اقرا المكتوب', 'اقرا الورقه', 'اقرا الدواء', 'ايه المكتوب'], 'read'); if (p) return p;
+  p = exact(['ما لون هذا', 'ما لونه', 'لونه ايه', 'اعرف اللون', 'النور شغال', 'في نور', 'كشف الاضاءه', 'حاله النور'], 'color'); if (p) return p;
+  p = exact(['تعرف علي العمله', 'العمله', 'اقرا العمله', 'كام دي', 'كام جنيه', 'دي كام جنيه'], 'currency'); if (p) return p;
+  p = exact(['ترجم النص', 'ترجم', 'ترجم للعربي', 'ترجم للغه العربيه'], 'translate'); if (p) return p;
+  p = exact(['وصف عام', 'وصف مختصر'], 'general'); if (p) return p;
+  p = exact(['وصف تفصيلي', 'بالتفصيل', 'وصف مفصل'], 'detail'); if (p) return p;
+
+  if (/^(?:اقرا(?: لي)?|ايه المكتوب في)(?:\s+.+)?$/.test(n)) return { type: 'read' };
+  const search = n.match(/^(?:ابحث عن|دور علي|دورلي علي|فين|اين|شوفلي|لاقيلي)\s+(.+)$/);
+  if (search && search[1] && search[1].trim().length >= 2) return { type: 'find', target: search[1].trim() };
+  if (/^(?:هل|ما|ماذا|من|اين|فين|ليه|لماذا|كم|كام|متي|ايه|ازاي|كيف|اي|يوجد|فيه)(?:\s|$)/.test(n)) {
+    return { type: 'question', question: String(raw || '').trim() };
+  }
+  return { type: 'question', question: String(raw || '').trim() };
+}
+
+function activateVoiceCommands() {
+  if (isProcessing) { updateStatus('انتظر انتهاء الطلب الحالي.'); return; }
+  const R = getSpeechRecognitionConstructor();
+  if (!R) {
+    const m = 'الأوامر الصوتية غير مدعومة في هذا المتصفح. استخدم الأزرار المباشرة بالأسفل.';
+    updateStatus(m); speak(m); return;
+  }
+  stopSpeaking(); stopVoiceRecognition();
+  // مهلة 180ms بعد إيقاف النطق حتى لا يلتقط الميكروفون صدى الصوت على أندرويد
+  setTimeout(() => {
+    try {
+      const inst = new R(); recognition = inst;
+      inst.lang = 'ar-EG'; inst.continuous = false; inst.interimResults = false; inst.maxAlternatives = 4;
+      let got = false, err = false;
+      inst.onstart = () => {
+        isListening = true;
+        updateStatus('أستمع الآن... قل: اقرأ لي، كام جنيه، لونه إيه، أو ابحث عن هاتف.');
+        vibrate([35, 65, 35]); playAckTone();
+      };
+      inst.onresult = ev => {
+        got = true; isListening = false;
+        const res = ev.results && ev.results[0];
+        const topAlt = res && res[0] ? res[0].transcript : '';
+        try { inst.stop(); } catch (e) {}
+        const cmd = parseVoiceCommand(topAlt);
+        if (!cmd) {
+          const m = 'لم أسمع أمراً واضحاً. حاول مرة أخرى أو استخدم الأزرار.';
+          updateStatus(m); speak(m); return;
+        }
+        handleVoiceCommand(cmd);
+      };
+      inst.onerror = ev => {
+        err = true; isListening = false;
+        if (ev.error !== 'aborted') {
+          const m = 'تعذر سماع الأمر الصوتي. تأكد من إذن الميكروفون أو استخدم الأزرار.';
+          updateStatus(m); speak(m);
+        }
+      };
+      inst.onend = () => {
+        isListening = false;
+        if (!got && !err) updateStatus('انتهى وقت الاستماع دون أمر.');
+        if (recognition === inst) recognition = null;
+      };
+      inst.start();
+    } catch (e) { isListening = false; recognition = null; }
+  }, 180);
+}
+
+/* البحث اللحظي الحقيقي عن غرض طلبه الكفيف */
+async function findObjectLive(targetRaw) {
+  const t = normalizeArabicCommand(targetRaw);
+  if (!localScanEnabled || !objectModel) {
+    const m = 'نموذج البحث المحلي غير جاهز بعد. انتظر لحظة أو تأكد من تفعيل رصد الأجسام.';
+    updateStatus(m); speak(m); return;
+  }
+  isProcessing = true;
+  try {
+    updateStatus('أبحث الآن عن: ' + targetRaw + '...');
+    const preds = await objectModel.detect(videoElement, 8, 0.42);
+    const objects = (preds || []).filter(p => Object.prototype.hasOwnProperty.call(LOCAL_OBJECT_MAP, p.class));
+    window.__lastNamedObjects = objects;
+    const found = objects.find(o => {
+      const ar = normalizeArabicCommand(LOCAL_OBJECT_MAP[o.class].ar);
+      return ar.includes(t) || t.includes(ar);
+    });
+    if (found) {
+      const pos = getRelativePositionArabic(found.bbox, videoElement.videoWidth);
+      playSpatialBeep(sideFromPosition(pos), false);
+      vibrate([50, 50, 50]);
+      const m = 'وجدت ' + LOCAL_OBJECT_MAP[found.class].ar + ' ' + pos + ' في اللقطة الحالية.';
+      updateStatus(m); speak(m);
+    } else {
+      const m = 'لم أجد «' + targetRaw + '» أمام الكاميرا الآن. حرّك الهاتف ببطء يميناً أو يساراً ثم ابحث مجدداً.';
+      updateStatus(m); speak(m);
+    }
+  } catch (e) {
+    updateStatus('تعذر البحث الآن.'); speak('تعذر البحث الآن.');
+  } finally { isProcessing = false; }
+}
+
+async function handleVoiceCommand(cmd) {
+  if (!cmd) return;
+  vibrate(25);
+  switch (cmd.type) {
+    case 'stop': stopSpeaking(); updateStatus('تم إيقاف الصوت.'); return;
+    case 'navOn': setNavMode(true, true); return;
+    case 'navOff': setNavMode(false, true); return;
+    case 'torchOn': await applyTorch(true, false); return;
+    case 'torchOff': await applyTorch(false, false); return;
+    case 'repeat': repeatLast(); return;
+    case 'describe': await captureAndAnalyze(); return;
+    case 'read': await readTextLocally(); return;
+    case 'color': await readColorAndLightLocally(); return;
+    case 'currency': await recognizeEgyptianCurrency(); return;
+    case 'translate': await translateLastTextToArabic(); return;
+    case 'general': descriptionMode = 'general'; writeStorage(LS_DESC_MODE, 'general'); speak('تم اختيار الوصف المختصر.'); return;
+    case 'detail': descriptionMode = 'detailed'; writeStorage(LS_DESC_MODE, 'detailed'); speak('تم اختيار الوصف التفصيلي.'); return;
+    case 'find': await findObjectLive(cmd.target); return;
+    case 'question': await captureAndAnalyze(cmd.question); return;
+  }
+}
+
+/* ==================== الإعدادات وبدء التشغيل ==================== */
+function updateSettingsStatus(msg, announce) {
+  if (settingsStatus) settingsStatus.textContent = msg;
+  if (announce) speak(msg);
+}
+
+function speakSetupGuide() {
+  const g = 'مرحباً بك في سند، المساعد البصري المجاني. لا تحتاج إلى أي اشتراك أو مفتاح مدفوع. اضغط زر ابدأ الآن الأخضر في أعلى الشاشة. ستجد أسفل الشاشة ستة أزرار كبيرة بنقرة واحدة: اقرأ النص لقراءة الأوراق والأدوية، وأمر صوتي للتحدث مع التطبيق، والعملة للجنيه المصري، واللون والنور لمعرفة الألوان وهل مصباح الغرفة مضاء، وترجم للعربي، وأعد الوصف. ولمس وسط الشاشة يصف ما حولك.';
+  speak(g);
+}
+
+async function verifyGeminiKey(key, model) {
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model);
+  const c = new AbortController(), t = setTimeout(() => c.abort(), 10000);
+  try {
+    const r = await fetch(url, { method: 'GET', headers: { 'x-goog-api-key': key }, cache: 'no-store', credentials: 'omit', signal: c.signal });
+    if (!r.ok) throw new Error(r.status === 400 ? 'المفتاح غير صحيح، تأكد من نسخه كاملاً.' : (r.status === 403 ? 'المشروع غير مصرح له.' : 'HTTP ' + r.status));
+    return true;
+  } finally { clearTimeout(t); }
+}
+
+async function saveSettings(event) {
+  if (event && event.preventDefault) event.preventDefault();
+  if (isVerifyingApiKey) return;
+  const key = String(apiKeyInput.value || '').trim();
+  const model = String(modelInput.value || '') || DEFAULT_MODEL;
+  if (!key) { updateSettingsStatus('المفتاح اختياري؛ اضغط «ابدأ الآن» للتشغيل المجاني بدونه.', true); return; }
+  if (!AVAILABLE_GEMINI_MODELS[model]) { updateSettingsStatus('اختر نموذجاً من القائمة.', true); return; }
+  isVerifyingApiKey = true; saveButton.disabled = true; saveButton.textContent = 'جارٍ التحقق...';
+  try {
+    await verifyGeminiKey(key, model);
+    apiKey = key; modelName = model;
+    try {
+      if (rememberKeyCheckbox.checked) { localStorage.setItem(LS_KEY, key); sessionStorage.removeItem(SS_KEY); }
+      else { sessionStorage.setItem(SS_KEY, key); localStorage.removeItem(LS_KEY); }
+      localStorage.setItem(LS_MODEL, model);
+    } catch (e) {}
+    updateSettingsStatus('تم تفعيل المفتاح بنجاح.', true);
+    await startApp(true);
+  } catch (err) {
+    updateSettingsStatus(err.message || 'تعذر التحقق من المفتاح.', true);
+  } finally {
+    isVerifyingApiKey = false; saveButton.disabled = false; saveButton.textContent = 'التحقق من المفتاح وحفظه';
+  }
+}
+
+async function startFreeMode() { await startApp(true); }
+
+function openSettings() {
+  stopSpeaking(); stopVoiceRecognition(); stopHybridLiveScanning(); stopCamera();
+  apiKeyInput.value = apiKey; modelInput.value = modelName || DEFAULT_MODEL;
+  if (liveLocalScanCheckbox) liveLocalScanCheckbox.checked = localScanEnabled;
+  if (navModeCheckbox) navModeCheckbox.checked = navModeEnabled;
+  if (spatialAudioCheckbox) spatialAudioCheckbox.checked = spatialAudioEnabled;
+  if (autoTorchCheckbox) autoTorchCheckbox.checked = autoTorchEnabled;
+  mainScreen.classList.add('hidden'); settingsScreen.classList.remove('hidden');
+  setTimeout(() => document.getElementById('settings-heading').focus(), 100);
+}
+
+function forgetSavedKey() {
+  try { localStorage.removeItem(LS_KEY); sessionStorage.removeItem(SS_KEY); } catch (e) {}
+  apiKey = ''; apiKeyInput.value = '';
+  updateSettingsStatus('تم حذف المفتاح. كل الميزات المحلية مستمرة مجاناً.', true);
+}
+
+async function keepScreenAwake() {
+  try {
+    if ('wakeLock' in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    }
+  } catch (e) {}
+}
+
+async function startApp(fromUserGesture) {
+  settingsScreen.classList.add('hidden'); mainScreen.classList.remove('hidden');
+  ensureAudioContext();
+  await startCamera(); keepScreenAwake();
+  initLocalObjectEngine();
+  setNavMode(navModeEnabled, false);
+  const msg = apiKey
+    ? 'سند جاهز بالوضعين المحلي والسحابي. المس الشاشة للوصف، أو استخدم الأزرار بالأسفل.'
+    : 'سند جاهز مجاناً. المس الشاشة للوصف، أو اختر اقرأ النص، أمر صوتي، العملة، أو اللون والنور من الأسفل.';
+  updateStatus(msg); hideRiskIndicator();
+  if (fromUserGesture) speak(msg);
+}
+
+/* لمسة واحدة للوصف، ولمستان متتاليتان لمن لا يستخدم TalkBack كاختصار للأمر الصوتي */
+function handleCaptureTap() {
+  if (tapCount === 0) {
+    tapCount = 1;
+    tapTimer = setTimeout(() => { tapCount = 0; tapTimer = null; captureAndAnalyze(); }, DOUBLE_TAP_MS);
+    return;
+  }
+  tapCount = 0; if (tapTimer) clearTimeout(tapTimer); tapTimer = null;
+  activateVoiceCommands();
+}
+captureBtn.addEventListener('click', handleCaptureTap);
+
+function repeatLast() {
+  if (lastDescription) { updateStatus(lastDescription); speak(lastDescription); }
+  else { const m = 'لا يوجد وصف سابق بعد. المس وسط الشاشة أو اضغط اقرأ النص.'; updateStatus(m); speak(m); }
+}
+
+/* ==================== أحداث النظام ==================== */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { stopVoiceRecognition(); stopHybridLiveScanning(); stopCamera(); stopSpeaking(); }
+  else if (!mainScreen.classList.contains('hidden')) { startCamera(); if (navModeEnabled) startHybridLiveScanning(); keepScreenAwake(); }
+});
+window.addEventListener('pagehide', () => { stopVoiceRecognition(); stopHybridLiveScanning(); stopCamera(); stopSpeaking(); });
+window.addEventListener('load', () => {
+  if (apiKey) { apiKeyInput.value = apiKey; modelInput.value = modelName; startApp(false); }
+  else setTimeout(() => { document.getElementById('settings-heading').focus(); }, 250);
+});
+</script>
+</body>
+</html>
