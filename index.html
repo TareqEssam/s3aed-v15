@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#030712">
   <meta name="color-scheme" content="dark">
-  <title>سند V20.2 — العيون الشاملة ووطواط الظلام المدقق</title>
+  <title>سند V20.4 — مساعد بصري شامل</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
@@ -84,6 +84,18 @@
     .risk-caution { color: #fde68a; border-color: #b45309; background: rgba(120, 53, 15, .56); }
     .risk-none { color: #bfdbfe; border-color: #1d4ed8; background: rgba(30, 58, 138, .48); }
     .risk-unknown { color: #e5e7eb; border-color: #4b5563; background: rgba(31, 41, 55, .82); }
+    #personal-manager { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.82); }
+    .personal-manager-card { width: min(100%, 560px); max-height: min(82dvh, 760px); overflow: auto; padding: 18px; border: 1px solid #475569; border-radius: 18px; background: #111827; color: #f8fafc; }
+    .personal-manager-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .personal-manager-heading h2 { font-size: 20px; font-weight: 800; }
+    .personal-manager-heading button, .personal-item-row button { min-height: 44px; padding: 8px 14px; border: 1px solid #64748b; border-radius: 10px; font-weight: 800; }
+    #personal-manager-help { margin: 12px 0; color: #cbd5e1; line-height: 1.7; }
+    .personal-item-row { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid #334155; }
+    .personal-item-row input { min-width: 0; width: 100%; min-height: 46px; padding: 8px 10px; border: 1px solid #64748b; border-radius: 9px; background: #030712; color: white; font-size: 16px; user-select: text; -webkit-user-select: text; }
+    .personal-item-row .save-name { background: #064e3b; border-color: #059669; }
+    .personal-item-row .delete-name { background: #7f1d1d; border-color: #dc2626; }
+    #personal-manager-status { min-height: 1.5em; margin-top: 10px; color: #bfdbfe; }
+    @media (max-width: 420px) { .personal-item-row { grid-template-columns: minmax(0,1fr) auto; } .personal-item-row .delete-name { grid-column: 2; } }
   </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col">
@@ -92,7 +104,7 @@
   <main id="settings-screen" class="p-4 flex flex-col min-h-screen max-w-xl mx-auto w-full" role="main" aria-labelledby="settings-heading">
     <div class="w-full flex flex-col gap-4 pb-10">
       <h1 id="settings-heading" tabindex="-1" class="text-2xl font-bold text-center text-blue-400">
-        سند V20.2 — المساعد البصري الشامل المجاني
+        سند V20.4 — المساعد البصري الشامل المجاني
       </h1>
       <p class="text-sm text-gray-200 leading-relaxed">
         مشروع إنساني مجاني بالكامل لفاقدي وضعاف البصر في مصر: يعمل <strong>بلا تكلفة أو بطاقة بنكية</strong>. يجمع بين الرؤية المحلية (المسافة بالخطوات، تحذير الاقتراب السريع، الكشاف التلقائي في الظلام، <strong>وطواط الظلام المحدّث بـ SO-CFAR</strong> لكشف الحوائط والأبواب المغلقة، قراءة النصوص وصلاحية الدواء، العملة المصرية، فحص البقع وتنسيق الملابس، ومدرب توجيه المرآة) + دعم الخادم المجاني ومفاتيح Gemini 3 و OpenRouter المجانية.
@@ -359,6 +371,18 @@
       </button>
     </div>
   </div>
+
+  <section id="personal-manager" class="hidden" role="dialog" aria-modal="true" aria-labelledby="personal-manager-title" aria-describedby="personal-manager-help">
+    <div class="personal-manager-card">
+      <div class="personal-manager-heading">
+        <h2 id="personal-manager-title">إدارة أشيائي المحفوظة</h2>
+        <button type="button" id="personal-manager-close" aria-label="إغلاق إدارة أشيائي">إغلاق</button>
+      </div>
+      <p id="personal-manager-help">يمكنك تعديل اسم أي شيء أو حذفه. لا تُحفظ التعديلات إلا بعد الضغط على حفظ.</p>
+      <div id="personal-manager-list" aria-live="polite"></div>
+      <p id="personal-manager-status" role="status" aria-live="polite"></p>
+    </div>
+  </section>
 
 <script>
 const DEFAULT_PUBLIC_PROXY_URL = '';
@@ -1863,29 +1887,32 @@ function parseVoiceCommand(raw) {
   p = exact(['ما هذا', 'ايه ده', 'ده ايه', 'عرفني', 'ما هذا الشيء'], 'identify'); if (p) return p;
   p = exact(['علمني', 'علم', 'احفظ ده', 'احفظ هذا', 'علمني شيئا'], 'teach'); if (p) return p;
   p = exact(['اشيائي', 'حاجاتي', 'ايه حاجاتي'], 'listMine'); if (p) return p;
-  const dl = n.match(/^(?:احذف|امسح|انسي)\s+(.+)$/); if (dl) return { type: 'delMine', target: dl[1].trim() };
+  const dl = n.match(/^(?:احذف|امسح|انسي)\s+(?:ثم\s+)?(.+)$/); if (dl) return { type: 'delMine', target: dl[1].trim() };
   const s = n.match(/^(?:ابحث عن|دور علي|فين|اين|لاقيلي)\s+(.+)$/);
   if (s && s[1] && s[1].trim().length >= 2) return { type: 'find', target: s[1].trim() };
   return { type: 'question', question: String(raw || '').trim() };
 }
 
-function activateVoiceCommands() {
-  if (isProcessing) return;
+async function activateVoiceCommands() {
+  if (isProcessing || isListening) return;
   const R = getSpeechRecognitionConstructor();
-  if (!R) { const m = 'الأوامر الصوتية غير مدعومة هنا؛ استخدم الأزرار.'; updateStatus(m); speak(m); return; }
+  if (!R) { const m = 'الأوامر الصوتية غير مدعومة في هذا المتصفح؛ استخدم الأزرار المتاحة.'; updateStatus(m); speak(m); return; }
   stopSpeaking(); stopVoiceRecognition();
-  setTimeout(() => {
-    try {
-      const inst = new R(); recognition = inst;
-      inst.lang = 'ar-EG'; inst.continuous = false; inst.interimResults = false; inst.maxAlternatives = 3;
-      let got = false, err = false;
-      inst.onstart = () => { isListening = true; updateStatus('أستمع إليك... اسأل ما تريد.'); vibrate([35, 65, 35]); playAckTone(); };
-      inst.onresult = ev => { got = true; isListening = false; const txt = ev.results?.[0]?.[0]?.transcript || ''; try { inst.stop(); } catch (e) {} handleVoiceCommand(parseVoiceCommand(txt)); };
-      inst.onerror = ev => { err = true; isListening = false; if (ev.error !== 'aborted') { updateStatus('لم أسمع الأمر بوضوح.'); speak('لم أسمع الأمر بوضوح.'); } };
-      inst.onend = () => { isListening = false; if (!got && !err) updateStatus('انتهى الاستماع.'); if (recognition === inst) recognition = null; };
-      inst.start();
-    } catch (e) { isListening = false; }
-  }, 180);
+  await speakWait('لا تتكلم الآن. انتظر حتى تسمع نغمة بدء الميكروفون.');
+  try {
+    const inst = new R(); recognition = inst;
+    inst.lang = 'ar-EG'; inst.continuous = false; inst.interimResults = false; inst.maxAlternatives = 3;
+    let got = false, ended = false;
+    inst.onstart = () => { isListening = true; updateStatus('الميكروفون يعمل الآن. تفضل بالكلام.'); vibrate([35, 65, 35]); playAckTone(); };
+    inst.onresult = ev => { got = true; isListening = false; const txt = ev.results?.[0]?.[0]?.transcript || ''; try { inst.stop(); } catch (e) {} handleVoiceCommand(parseVoiceCommand(txt)); };
+    inst.onerror = ev => {
+      ended = true; isListening = false;
+      const messages = { 'not-allowed': 'لم تسمح بتشغيل الميكروفون. راجع إذن الميكروفون في المتصفح.', 'service-not-allowed': 'خدمة التعرف على الكلام غير مسموح بها.', 'audio-capture': 'لم يتم العثور على ميكروفون يعمل.', 'no-speech': 'لم أسمع كلاماً. اضغط الزر وحاول مرة أخرى.', 'network': 'تعذر الاتصال بخدمة التعرف على الكلام في المتصفح.' };
+      const m = messages[ev.error] || 'تعذر تشغيل الميكروفون: ' + (ev.error || 'خطأ غير معروف'); updateStatus(m); speak(m);
+    };
+    inst.onend = () => { isListening = false; if (!got && !ended) updateStatus('انتهى الاستماع دون استقبال كلام.'); if (recognition === inst) recognition = null; };
+    inst.start();
+  } catch (e) { isListening = false; recognition = null; const m = 'لم يبدأ الميكروفون. تحقق من إذن الميكروفون وحاول مرة أخرى.'; updateStatus(m); speak(m); }
 }
 
 async function findObjectLive(targetRaw) {
@@ -2062,15 +2089,41 @@ function speakWait(text) {
     } catch (e) { assistantSpeaking = false; res(); }
   });
 }
-function listenOnce(ms = 8000) {
-  return new Promise(async res => {
-    const R = getSpeechRecognitionConstructor();
-    if (!R) { const t = window.prompt('اكتب الإجابة:'); return res(t ? t.trim() : ''); }
-    let done = false; const fin = t => { if (done) return; done = true; isListening = false; try { inst.stop(); } catch (e) {} res(t || ''); };
-    const inst = new R(); inst.lang = 'ar-EG'; inst.continuous = false; inst.interimResults = false;
-    inst.onresult = ev => fin(ev.results?.[0]?.[0]?.transcript || ''); inst.onerror = () => fin(''); inst.onend = () => fin('');
-    await sleep(250); isListening = true; playAckTone(); vibrate(25);
-    try { inst.start(); } catch (e) { fin(''); } setTimeout(() => fin(''), ms);
+async function listenOnce(ms = 8000) {
+  const R = getSpeechRecognitionConstructor();
+  if (!R) {
+    await speakWait('التعرف الصوتي غير متاح هنا. اكتب الإجابة في مربع الإدخال الذي سيظهر.');
+    const t = window.prompt('اكتب الإجابة:'); return t ? t.trim() : '';
+  }
+  await speakWait('لا تتكلم حتى تسمع نغمة بدء الميكروفون.');
+  return new Promise(resolve => {
+    let done = false, started = false, listenTimer = null, startTimer = null;
+    let inst;
+    const finish = (value, message) => {
+      if (done) return; done = true; isListening = false;
+      if (listenTimer) clearTimeout(listenTimer);
+      if (startTimer) clearTimeout(startTimer);
+      if (recognition === inst) recognition = null;
+      try { inst.stop(); } catch (e) {}
+      if (message) { updateStatus(message); speak(message); }
+      resolve(String(value || '').trim());
+    };
+    try {
+      inst = new R(); recognition = inst;
+      inst.lang = 'ar-EG'; inst.continuous = false; inst.interimResults = false; inst.maxAlternatives = 3;
+      inst.onstart = () => {
+        started = true; isListening = true; updateStatus('الميكروفون يعمل الآن. تفضل بالكلام.');
+        vibrate(25); playAckTone(); if (startTimer) clearTimeout(startTimer); listenTimer = setTimeout(() => finish('', 'انتهى وقت الاستماع. حاول مرة أخرى.'), ms);
+      };
+      inst.onresult = ev => finish(ev.results?.[0]?.[0]?.transcript || '');
+      inst.onerror = ev => {
+        const messages = { 'not-allowed': 'لم تسمح بتشغيل الميكروفون. راجع إذن الميكروفون.', 'service-not-allowed': 'المتصفح لا يسمح بخدمة التعرف على الكلام.', 'audio-capture': 'لم يتم العثور على ميكروفون يعمل.', 'no-speech': 'لم أسمع كلاماً. حاول مرة أخرى.', 'network': 'تعذر الاتصال بخدمة التعرف على الكلام في المتصفح.' };
+        finish('', messages[ev.error] || 'حدث خطأ أثناء الاستماع: ' + (ev.error || 'غير معروف'));
+      };
+      inst.onend = () => { if (!done) finish('', started ? 'انتهى الاستماع دون التقاط إجابة.' : 'لم يبدأ الميكروفون. تحقق من الإذن وحاول مرة أخرى.'); };
+      inst.start();
+      startTimer = setTimeout(() => finish('', 'لم يبدأ الميكروفون. تحقق من الإذن وحاول مرة أخرى.'), 12000);
+    } catch (e) { finish('', 'تعذر بدء الميكروفون. تحقق من إذن المتصفح.'); }
   });
 }
 const YES_WORDS = ['نعم', 'ايوه', 'ايوا', 'اه', 'تمام', 'صح', 'احفظ', 'موافق', 'ماشي'];
@@ -2117,17 +2170,29 @@ async function teachPersonal() {
     let cs = 0, cn = 0; for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) { cs += dotVec(shots[i], shots[j]); cn++; }
     if (cs / cn < 0.5) { await speakWait('الصور الأربع مختلفة جداً. ثبّت الشيء وحده أمام الكاميرا وأعد المحاولة.'); return; }
     await speakWait('ما اسم هذا الشيء؟');
-    const name = (await listenOnce()).trim();
+    let name = (await listenOnce()).trim();
     if (name.length < 2 || name.length > 40) { await speakWait('لم أسمع الاسم بوضوح. أعد المحاولة.'); return; }
+    await speakWait('سمعت الاسم: ' + name + '. إذا كان صحيحاً قل نعم. وإذا أردت تغييره قل: تعديل الاسم.');
+    let nameDecision = normalizeArabicCommand(await listenOnce());
+    if (nameDecision === 'تعديل الاسم' || nameDecision === 'عدل الاسم' || nameDecision === 'غير الاسم') {
+      await speakWait('قل الاسم الجديد الآن، وانتظر نغمة الميكروفون.');
+      name = (await listenOnce()).trim();
+      if (name.length < 2 || name.length > 40) { await speakWait('الاسم الجديد غير واضح أو أطول من المسموح. ألغيت الحفظ.'); return; }
+      await speakWait('الاسم الجديد هو: ' + name + '. قل نعم للحفظ أو لا للإلغاء.');
+      nameDecision = normalizeArabicCommand(await listenOnce());
+    }
+    if (!isYes(nameDecision)) { await speakWait('لم يتم الحفظ. يمكنك إعادة المحاولة متى شئت.'); return; }
     const nn = normalizeArabicCommand(name), exist = items.find(it => normalizeArabicCommand(it.name) === nn);
     let warn = '';
     for (const it of items) { if (it === exist) continue; const s = Math.max(...shots.map(v => Math.max(...it.vecs.map(w => dotVec(v, w))))); if (s > PERSONAL_LOOKALIKE) { warn = ' تنبيه: يشبه «' + it.name + '» كثيراً وقد أخلط بينهما.'; break; } }
     if (!exist && items.length >= PERSONAL_MAX_ITEMS) { await speakWait('وصلت للحد الأقصى من الأشياء. احذف شيئاً أولاً.'); return; }
-    await speakWait('سأحفظه باسم ' + name + '.' + warn + ' قل نعم للحفظ.');
-    if (!isYes(await listenOnce())) { await speakWait('تم الإلغاء.'); return; }
-    if (exist) exist.vecs = [...exist.vecs, ...shots].slice(-PERSONAL_MAX_SHOTS * 2); else items.push({ name, vecs: shots });
-    const ok = await idbSet('items', items);
-    await speakWait(ok ? 'تم الحفظ.' : 'تم الحفظ مؤقتاً فقط، وسيُمسح عند إغلاق التطبيق.');
+    await speakWait('جارٍ حفظ ' + name + '.' + warn);
+    const updatedItems = items.map(it => ({ ...it, vecs: Array.isArray(it.vecs) ? it.vecs : [] }));
+    const target = updatedItems.find(it => normalizeArabicCommand(it.name) === nn);
+    if (target) target.vecs = [...target.vecs, ...shots].slice(-PERSONAL_MAX_SHOTS * 2); else updatedItems.push({ name, vecs: shots });
+    const ok = await idbSet('items', updatedItems);
+    if (ok) personalItems = updatedItems;
+    await speakWait(ok ? 'تم الحفظ باسم ' + name + '.' : 'تعذر حفظ الشيء. لم يتم تأكيد الحفظ. حاول مرة أخرى.');
   } catch (e) { speak('حدث خطأ أثناء التعليم.'); }
   finally { isProcessing = false; isListening = false; }
 }
@@ -2154,14 +2219,73 @@ async function identifyPersonal() {
 }
 async function listPersonal() {
   const items = await loadPersonalItems();
-  const m = items.length ? ('أشياؤك المحفوظة: ' + items.map(i => i.name).join('، ') + '. لحذف شيء قل: احذف ثم اسمه.') : 'لا توجد أشياء محفوظة.';
+  const m = items.length ? ('أشياؤك المحفوظة: ' + items.map(i => i.name).join('، ') + '. يمكنك تعديل الأسماء أو الحذف من نافذة إدارة أشيائي.') : 'لا توجد أشياء محفوظة.';
   updateStatus(m); speak(m);
+  openPersonalManager();
 }
 async function deletePersonal(nameRaw) {
-  const items = await loadPersonalItems(), n = normalizeArabicCommand(nameRaw), i = items.findIndex(it => normalizeArabicCommand(it.name).includes(n));
-  if (i < 0) { speak('لم أجد شيئاً بهذا الاسم.'); return; }
-  const nm = items[i].name; items.splice(i, 1); await idbSet('items', items); speak('تم حذف ' + nm + '.');
+  const items = await loadPersonalItems(), n = normalizeArabicCommand(nameRaw);
+  if (!n) { const m = 'قل احذف ثم اسم الشيء، أو استخدم نافذة إدارة أشيائي.'; updateStatus(m); speak(m); return; }
+  let matches = items.filter(it => normalizeArabicCommand(it.name) === n);
+  if (!matches.length) matches = items.filter(it => normalizeArabicCommand(it.name).includes(n));
+  if (matches.length !== 1) {
+    const m = matches.length ? 'وجدت أكثر من شيء بهذا الاسم الجزئي. افتح أشيائي واختر العنصر المطلوب.' : 'لم أجد شيئاً بهذا الاسم.';
+    updateStatus(m); speak(m); return;
+  }
+  const nm = matches[0].name;
+  if (!window.confirm('هل تريد حذف «' + nm + '» نهائياً من أشيائك المحفوظة على هذا الجهاز؟')) return;
+  const updatedItems = items.filter(it => it !== matches[0]);
+  const ok = await idbSet('items', updatedItems);
+  if (!ok) { const m = 'تعذر حذف العنصر من التخزين. لم يتم تأكيد الحذف.'; updateStatus(m); speak(m); return; }
+  personalItems = updatedItems; updatePersonalManager();
+  const m = 'تم حذف ' + nm + ' من أشيائك المحفوظة.'; updateStatus(m); speak(m);
 }
+function openPersonalManager() {
+  const panel = document.getElementById('personal-manager');
+  if (!panel) return;
+  panel.classList.remove('hidden'); updatePersonalManager();
+  document.getElementById('personal-manager-close')?.focus();
+}
+function closePersonalManager() {
+  const panel = document.getElementById('personal-manager');
+  if (panel) panel.classList.add('hidden');
+  document.getElementById('mine-list-btn')?.focus();
+}
+function updatePersonalManager(message = '') {
+  const list = document.getElementById('personal-manager-list'), status = document.getElementById('personal-manager-status');
+  if (!list) return;
+  list.replaceChildren();
+  const items = personalItems || [];
+  if (!items.length) {
+    const empty = document.createElement('p'); empty.textContent = 'لا توجد أشياء محفوظة حتى الآن.'; list.appendChild(empty);
+  }
+  items.forEach((item, index) => {
+    const row = document.createElement('div'); row.className = 'personal-item-row';
+    const input = document.createElement('input'); input.type = 'text'; input.maxLength = 40; input.minLength = 2; input.value = item.name; input.setAttribute('aria-label', 'اسم العنصر ' + item.name);
+    const save = document.createElement('button'); save.type = 'button'; save.className = 'save-name'; save.textContent = 'حفظ الاسم';
+    save.addEventListener('click', async () => {
+      const name = input.value.trim();
+      if (name.length < 2 || name.length > 40) { status.textContent = 'يجب أن يكون الاسم من حرفين إلى 40 حرفاً.'; input.focus(); return; }
+      const normalized = normalizeArabicCommand(name);
+      if (items.some((other, i) => i !== index && normalizeArabicCommand(other.name) === normalized)) { status.textContent = 'يوجد عنصر آخر بالاسم نفسه. اختر اسماً مختلفاً.'; input.focus(); return; }
+      const updated = items.map((other, i) => i === index ? { ...other, name } : other);
+      if (!(await idbSet('items', updated))) { status.textContent = 'تعذر حفظ الاسم. لم يتغير العنصر.'; return; }
+      personalItems = updated; updatePersonalManager('تم تحديث الاسم إلى ' + name + '.');
+    });
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'delete-name'; del.textContent = 'حذف'; del.setAttribute('aria-label', 'حذف ' + item.name);
+    del.addEventListener('click', async () => {
+      if (!window.confirm('هل تريد حذف «' + item.name + '» نهائياً من هذا الجهاز؟')) return;
+      const updated = items.filter((_, i) => i !== index);
+      if (!(await idbSet('items', updated))) { status.textContent = 'تعذر حذف العنصر من التخزين.'; return; }
+      personalItems = updated; updatePersonalManager('تم حذف ' + item.name + '.');
+    });
+    row.append(input, save, del); list.appendChild(row);
+  });
+  if (status) status.textContent = message;
+}
+document.getElementById('personal-manager-close')?.addEventListener('click', closePersonalManager);
+document.getElementById('personal-manager')?.addEventListener('click', ev => { if (ev.target.id === 'personal-manager') closePersonalManager(); });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !document.getElementById('personal-manager')?.classList.contains('hidden')) closePersonalManager(); });
 
 function repeatLast() { if (lastDescription) { updateStatus(lastDescription); speak(lastDescription); } else { const m = 'لا يوجد وصف سابق بعد.'; updateStatus(m); speak(m); } }
 
