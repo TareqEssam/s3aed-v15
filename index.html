@@ -1299,10 +1299,8 @@ async function runNeuralDepthAnalysis(archList = []) {
     const yFar = avg(0.30, 0.54, 0.70, 0.62), yMid = avg(0.30, 0.68, 0.70, 0.76), yNear = avg(0.30, 0.82, 0.70, 0.90);
     const g1 = yMid - yFar, g2 = yNear - yMid, dropCliff = g2 - g1;
     const alerts = [];
-    if (c > 192 || (c > Math.max(l, r) + 52 && c > 145)) alerts.push('حائط أو باب مغلق قريب في وسط المسار.');
-    if (dropCliff > 44 && g2 > 50) alerts.push('انخفاض مفاجئ في مستوى الأرض أمامك؛ تحقّق بالعصا لاحتمال سلم نازل أو حفرة.');
-    else if (archList.some(a => a.includes('سلم')) && g1 > 8 && yFar > 110) alerts.push('درجات السلم تبدو مرتفعة أمامك (يُرجح صعود — تأكد بالعصا).');
-    if (l < r - 24) alerts.push('اليسار أفتح.'); else if (r < l - 24) alerts.push('اليمين أفتح.');
+    if (archList.some(a => a.includes('سلم')) && g1 > 8 && yFar > 110) alerts.push('درجات السلم تبدو مرتفعة أمامك (يُرجح صعود — تأكد بالعصا).');
+    if (l < r - 24) alerts.push('اليسار يبدو أبعد نسبياً.'); else if (r < l - 24) alerts.push('اليمين يبدو أبعد نسبياً.');
     return alerts;
   } catch (e) { return null; }
 }
@@ -1510,6 +1508,13 @@ function detectExpiryWarning(rawText) {
       return ' التاريخ الظاهر للصلاحية: ' + mm + '/' + yy + '.';
     }
   }
+  const m2 = t.match(/(20\d{2})\s*[\/\-.]\s*(0?[1-9]|1[0-2])\b/) || t.match(/\b(0?[1-9]|1[0-2])\s*[.]\s*(20\d{2})\b/);
+  if (m2 && hasCue) {
+    let a = parseInt(m2[1], 10), b = parseInt(m2[2], 10), yy = a > 31 ? a : b, mm = a > 31 ? b : a;
+    if (yy < cy || (yy === cy && mm < cm)) return ' تنبيه مهم: يبدو أن هناك تاريخ صلاحية منتهياً (' + mm + '/' + yy + ') — تأكد مع الصيدلي قبل الاستعمال!';
+    return ' التاريخ الظاهر للصلاحية: ' + mm + '/' + yy + '.';
+  }
+  if (hasCue) return ' لم أتمكن من قراءة تاريخ الصلاحية بثقة؛ اطلب من شخص موثوق أو الصيدلي قراءته قبل الاستعمال.';
   return '';
 }
 
@@ -2004,7 +2009,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pagehide', () => { stopVoiceRecognition(); stopLiveMonitoring(); stopCamera(); stopSpeaking(); });
 window.addEventListener('load', () => {
-  try { const p = new URLSearchParams(location.search).get('proxy'); if (p && /^https:\/\/.+/.test(p)) { proxyUrl = p.replace(/\/$/, ''); writeLS(LS_PROXY, proxyUrl); } } catch (e) {}
+  try { const p = new URLSearchParams(location.search).get('proxy'); if (p && /^https:\/\/[a-z0-9.-]+\.(workers|pages)\.dev(\/.*)?$/i.test(p) && window.confirm('سيُرسل التطبيق الصور إلى هذا الخادم: ' + new URL(p).host + ' . هل تثق به؟')) { proxyUrl = p.replace(/\/$/, ''); writeLS(LS_PROXY, proxyUrl); } } catch (e) {}
   if (hasCloudVision()) { apiKeyInput.value = apiKey; proxyUrlInput.value = proxyUrl; startApp(false); }
   else setTimeout(() => { document.getElementById('settings-heading').focus(); }, 250);
 });
