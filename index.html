@@ -345,6 +345,18 @@
               class="bg-indigo-950 hover:bg-indigo-900 border border-indigo-700 transition">
         <span class="control-icon" aria-hidden="true">🦇</span><span>وطواط الظلام</span>
       </button>
+      <button id="mine-id-btn" type="button" onclick="identifyPersonal()" data-speak-label="ما هذا الشيء؟ يتعرف على أشيائك التي علمتها" aria-label="ما هذا"
+              class="bg-teal-950 hover:bg-teal-900 border border-teal-700 transition">
+        <span class="control-icon" aria-hidden="true">🏷️</span><span>ما هذا؟</span>
+      </button>
+      <button id="mine-teach-btn" type="button" onclick="teachPersonal()" data-speak-label="علمني شيئاً جديداً من أشيائك" aria-label="علمني شيئاً"
+              class="bg-teal-950 hover:bg-teal-900 border border-teal-700 transition">
+        <span class="control-icon" aria-hidden="true">➕</span><span>علّمني</span>
+      </button>
+      <button id="mine-list-btn" type="button" onclick="listPersonal()" data-speak-label="أشيائي المحفوظة" aria-label="أشيائي"
+              class="bg-teal-950 hover:bg-teal-900 border border-teal-700 transition">
+        <span class="control-icon" aria-hidden="true">📋</span><span>أشيائي</span>
+      </button>
     </div>
   </div>
 
@@ -1848,6 +1860,10 @@ function parseVoiceCommand(raw) {
   p = exact(['وضع البيت', 'الباب', 'الشباك'], 'modeHome'); if (p) return p;
   p = exact(['ملابسي', 'هدومي', 'الملابس', 'في بقعه'], 'modeClothes'); if (p) return p;
   p = exact(['المراه', 'شعري', 'شكلي', 'مظهري'], 'modeGrooming'); if (p) return p;
+  p = exact(['ما هذا', 'ايه ده', 'ده ايه', 'عرفني', 'ما هذا الشيء'], 'identify'); if (p) return p;
+  p = exact(['علمني', 'علم', 'احفظ ده', 'احفظ هذا', 'علمني شيئا'], 'teach'); if (p) return p;
+  p = exact(['اشيائي', 'حاجاتي', 'ايه حاجاتي'], 'listMine'); if (p) return p;
+  const dl = n.match(/^(?:احذف|امسح|انسي)\s+(.+)$/); if (dl) return { type: 'delMine', target: dl[1].trim() };
   const s = n.match(/^(?:ابحث عن|دور علي|فين|اين|لاقيلي)\s+(.+)$/);
   if (s && s[1] && s[1].trim().length >= 2) return { type: 'find', target: s[1].trim() };
   return { type: 'question', question: String(raw || '').trim() };
@@ -1914,6 +1930,10 @@ async function handleVoiceCommand(cmd) {
     case 'modeHome': setLifeMode('home'); return;
     case 'modeClothes': setLifeMode('clothes'); return;
     case 'modeGrooming': setLifeMode('grooming'); return;
+    case 'identify': await identifyPersonal(); return;
+    case 'teach': await teachPersonal(); return;
+    case 'listMine': await listPersonal(); return;
+    case 'delMine': await deletePersonal(cmd.target); return;
     case 'find': await findObjectLive(cmd.target); return;
     case 'question': await captureAndAnalyze(cmd.question); return;
   }
@@ -1999,6 +2019,148 @@ async function startApp(fromUserGesture) {
   setLifeMode(lifeMode, true); setNavMode(navModeEnabled, false); startLiveMonitoring();
   const msg = hasCloudVision() ? 'سند جاهز بالعيون الكاملة. الوضع: ' + LIFE_MODES[lifeMode].title + '.' : 'سند جاهز مجاناً محلياً. الوضع: ' + LIFE_MODES[lifeMode].title + '.';
   updateStatus(msg); hideRiskIndicator(); if (fromUserGesture) speak(msg);
+}
+
+
+/* ============================================================================
+   أشيائي (V20.4): تعليم الهاتف أشياء شخصية — كله على الهاتف، لا يُرسل شيء.
+   النموذج: DINOv2-small (Xenova/dinov2-small عبر Transformers.js) لاستخراج بصمة رقمية
+   للصورة، ثم مقارنة بالأقرب (cosine). تُخزَّن البصمات فقط (لا الصور) في IndexedDB.
+   الحدود أدناه قيم ابتدائية تحتاج معايرة على أشياء حقيقية.
+============================================================================ */
+const PERSONAL_MIN_SIM = 0.55, PERSONAL_MARGIN = 0.05, PERSONAL_LOOKALIKE = 0.85, PERSONAL_MAX_ITEMS = 60, PERSONAL_MAX_SHOTS = 6;
+let personalExtractor = null, personalLoading = null, personalItems = null;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function idbOpen() { return new Promise((res, rej) => { const q = indexedDB.open('sanad_personal', 1); q.onupgradeneeded = () => q.result.createObjectStore('kv'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+async function idbGet(k) { try { const db = await idbOpen(); return await new Promise((res, rej) => { const r = db.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); } catch (e) { return undefined; } }
+async function idbSet(k, v) { try { const db = await idbOpen(); await new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = () => rej(t.error); }); return true; } catch (e) { return false; } }
+async function loadPersonalItems() { if (!personalItems) personalItems = (await idbGet('items')) || []; return personalItems; }
+
+function normVec(v) { let s = 0; for (let i = 0; i < v.length; i++) s += v[i] * v[i]; s = Math.sqrt(s) || 1; const o = new Float32Array(v.length); for (let i = 0; i < v.length; i++) o[i] = v[i] / s; return o; }
+function dotVec(a, b) { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
+function rankPersonal(q, items) {
+  return items.map(it => ({ name: it.name, score: Math.max(...it.vecs.map(v => dotVec(q, v))) })).sort((a, b) => b.score - a.score);
+}
+function decidePersonal(q, items) {
+  const r = rankPersonal(q, items), best = r[0], second = r[1];
+  if (!best || best.score < PERSONAL_MIN_SIM) return { kind: 'unknown', r };
+  const margin = (MED_RE.test(best.name) || (second && MED_RE.test(second.name))) ? PERSONAL_MARGIN * 2.4 : PERSONAL_MARGIN;
+  if (second && best.score - second.score < margin && second.score >= PERSONAL_MIN_SIM) return { kind: 'ambiguous', a: best.name, b: second.name, r };
+  return { kind: 'match', name: best.name, r };
+}
+
+function speakWait(text) {
+  return new Promise(res => {
+    if (!('speechSynthesis' in window)) return res();
+    try {
+      window.speechSynthesis.cancel(); assistantSpeaking = true;
+      const u = new SpeechSynthesisUtterance(text); u.lang = arabicVoice ? arabicVoice.lang : 'ar-EG'; if (arabicVoice) u.voice = arabicVoice;
+      const done = () => { assistantSpeaking = false; res(); };
+      u.onend = done; u.onerror = done; setTimeout(done, Math.min(30000, 2000 + text.length * 110));
+      window.speechSynthesis.speak(u);
+    } catch (e) { assistantSpeaking = false; res(); }
+  });
+}
+function listenOnce(ms = 8000) {
+  return new Promise(async res => {
+    const R = getSpeechRecognitionConstructor();
+    if (!R) { const t = window.prompt('اكتب الإجابة:'); return res(t ? t.trim() : ''); }
+    let done = false; const fin = t => { if (done) return; done = true; isListening = false; try { inst.stop(); } catch (e) {} res(t || ''); };
+    const inst = new R(); inst.lang = 'ar-EG'; inst.continuous = false; inst.interimResults = false;
+    inst.onresult = ev => fin(ev.results?.[0]?.[0]?.transcript || ''); inst.onerror = () => fin(''); inst.onend = () => fin('');
+    await sleep(250); isListening = true; playAckTone(); vibrate(25);
+    try { inst.start(); } catch (e) { fin(''); } setTimeout(() => fin(''), ms);
+  });
+}
+const YES_WORDS = ['نعم', 'ايوه', 'ايوا', 'اه', 'تمام', 'صح', 'احفظ', 'موافق', 'ماشي'];
+function isYes(t) { const n = normalizeArabicCommand(t); return YES_WORDS.map(normalizeArabicCommand).some(w => n === w || n.startsWith(w + ' ')); }
+
+async function ensurePersonalModel() {
+  if (personalExtractor) return personalExtractor;
+  if (personalLoading) return personalLoading;
+  personalLoading = (async () => {
+    try {
+      updateStatus('جارٍ تجهيز نموذج التعرف على أشيائك (مرة واحدة، يلزم إنترنت)...');
+      const mod = await loadTransformersEngineFixed();
+      personalExtractor = await mod.pipeline('image-feature-extraction', 'Xenova/dinov2-small', { device: 'wasm', dtype: 'q8' });
+      return personalExtractor;
+    } catch (e) { personalExtractor = null; updateStatus('تعذر تحميل النموذج: ' + (e?.message || '')); return null; }
+    finally { personalLoading = null; }
+  })();
+  return personalLoading;
+}
+async function embedFrame() {
+  captureFrame(320, 0.9);
+  const out = await personalExtractor(canvas.toDataURL('image/jpeg', 0.9));
+  const dims = out.dims, D = dims[dims.length - 1], N = dims.length >= 3 ? dims[dims.length - 2] : 1, d = out.data;
+  const cls = normVec(d.slice(0, D)), mean = new Float32Array(D);
+  if (N > 1) { for (let t = 1; t < N; t++) for (let i = 0; i < D; i++) mean[i] += d[t * D + i] / (N - 1); }
+  const both = new Float32Array(2 * D); both.set(cls, 0); both.set(normVec(N > 1 ? mean : cls), D);
+  return normVec(both);
+}
+const MED_RE = /(دواء|دوا|حبوب|قرص|اقراص|شراب|علاج|حقن|مرهم|قطره|كبسول)/;
+
+async function teachPersonal() {
+  if (isProcessing) return; isProcessing = true; hideRiskIndicator();
+  try {
+    const items = await loadPersonalItems();
+    if (!(await ensurePersonalModel())) { speak('تعذر تجهيز النموذج. تأكد من الإنترنت وحاول مرة أخرى.'); return; }
+    await speakWait('ضع الشيء أمام الكاميرا على بعد شبر. سأصوره أربع مرات، حرّكه قليلاً بين كل مرة.');
+    const shots = []; let tries = 0;
+    while (shots.length < 4 && tries++ < 10) {
+      await sleep(1400); const q = probeFrameQuality();
+      if (!q || q.isLensCovered || q.isVeryDark || q.isFlat) { await speakWait(q?.isVeryDark ? 'المكان مظلم.' : 'الصورة غير واضحة، ثبّت الشيء وقرّبه من الضوء.'); continue; }
+      playAckTone(); vibrate(30); shots.push(await embedFrame());
+    }
+    if (shots.length < 4) { await speakWait('لم أتمكن من تصوير الشيء بوضوح. حاول في مكان أكثر إضاءة.'); return; }
+    let cs = 0, cn = 0; for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) { cs += dotVec(shots[i], shots[j]); cn++; }
+    if (cs / cn < 0.5) { await speakWait('الصور الأربع مختلفة جداً. ثبّت الشيء وحده أمام الكاميرا وأعد المحاولة.'); return; }
+    await speakWait('ما اسم هذا الشيء؟');
+    const name = (await listenOnce()).trim();
+    if (name.length < 2 || name.length > 40) { await speakWait('لم أسمع الاسم بوضوح. أعد المحاولة.'); return; }
+    const nn = normalizeArabicCommand(name), exist = items.find(it => normalizeArabicCommand(it.name) === nn);
+    let warn = '';
+    for (const it of items) { if (it === exist) continue; const s = Math.max(...shots.map(v => Math.max(...it.vecs.map(w => dotVec(v, w))))); if (s > PERSONAL_LOOKALIKE) { warn = ' تنبيه: يشبه «' + it.name + '» كثيراً وقد أخلط بينهما.'; break; } }
+    if (!exist && items.length >= PERSONAL_MAX_ITEMS) { await speakWait('وصلت للحد الأقصى من الأشياء. احذف شيئاً أولاً.'); return; }
+    await speakWait('سأحفظه باسم ' + name + '.' + warn + ' قل نعم للحفظ.');
+    if (!isYes(await listenOnce())) { await speakWait('تم الإلغاء.'); return; }
+    if (exist) exist.vecs = [...exist.vecs, ...shots].slice(-PERSONAL_MAX_SHOTS * 2); else items.push({ name, vecs: shots });
+    const ok = await idbSet('items', items);
+    await speakWait(ok ? 'تم الحفظ.' : 'تم الحفظ مؤقتاً فقط، وسيُمسح عند إغلاق التطبيق.');
+  } catch (e) { speak('حدث خطأ أثناء التعليم.'); }
+  finally { isProcessing = false; isListening = false; }
+}
+
+async function identifyPersonal() {
+  if (isProcessing) { updateStatus('انتظر انتهاء الطلب الحالي.'); return; }
+  isProcessing = true; hideRiskIndicator(); vibrate(35); playAckTone();
+  try {
+    const items = await loadPersonalItems();
+    if (!items.length) { const m = 'لم تعلّمني شيئاً بعد. اضغط «علّمني».'; updateStatus(m); speak(m); return; }
+    await withAutoTorchForCapture(async (q) => {
+      if (q?.isVeryDark) { const m = 'المكان مظلم جداً.'; updateStatus(m); speak(m); return; }
+      if (!(await ensurePersonalModel())) { speak('تعذر تجهيز النموذج.'); return; }
+      const d = decidePersonal(await embedFrame(), items);
+      updateStatus('(معايرة) ' + d.r.slice(0, 2).map(x => x.name + ' ' + x.score.toFixed(2)).join(' | '));
+      let m;
+      if (d.kind === 'unknown') m = 'لا أعرف هذا الشيء. قرّبه وأعد المحاولة أو علّمني إياه.';
+      else if (d.kind === 'ambiguous') m = 'قد يكون ' + d.a + ' أو ' + d.b + '. لست متأكداً.';
+      else m = 'أظنه ' + d.name + '.' + (MED_RE.test(d.name) ? ' هذا تخمين بصري؛ تأكد من الاسم المكتوب قبل الاستعمال.' : '');
+      lastDescription = m; speak(m);
+    });
+  } catch (e) { speak('تعذر التعرف الآن.'); }
+  finally { isProcessing = false; }
+}
+async function listPersonal() {
+  const items = await loadPersonalItems();
+  const m = items.length ? ('أشياؤك المحفوظة: ' + items.map(i => i.name).join('، ') + '. لحذف شيء قل: احذف ثم اسمه.') : 'لا توجد أشياء محفوظة.';
+  updateStatus(m); speak(m);
+}
+async function deletePersonal(nameRaw) {
+  const items = await loadPersonalItems(), n = normalizeArabicCommand(nameRaw), i = items.findIndex(it => normalizeArabicCommand(it.name).includes(n));
+  if (i < 0) { speak('لم أجد شيئاً بهذا الاسم.'); return; }
+  const nm = items[i].name; items.splice(i, 1); await idbSet('items', items); speak('تم حذف ' + nm + '.');
 }
 
 function repeatLast() { if (lastDescription) { updateStatus(lastDescription); speak(lastDescription); } else { const m = 'لا يوجد وصف سابق بعد.'; updateStatus(m); speak(m); } }
