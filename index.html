@@ -104,7 +104,7 @@
   <main id="settings-screen" class="p-4 flex flex-col min-h-screen max-w-xl mx-auto w-full" role="main" aria-labelledby="settings-heading">
     <div class="w-full flex flex-col gap-4 pb-10">
       <h1 id="settings-heading" tabindex="-1" class="text-2xl font-bold text-center text-blue-400">
-        سند V20.4 — المساعد البصري الشامل المجاني
+        سند V20.2 — المساعد البصري الشامل المجاني
       </h1>
       <p class="text-sm text-gray-200 leading-relaxed">
         مشروع إنساني مجاني بالكامل لفاقدي وضعاف البصر في مصر: يعمل <strong>بلا تكلفة أو بطاقة بنكية</strong>. يجمع بين الرؤية المحلية (المسافة بالخطوات، تحذير الاقتراب السريع، الكشاف التلقائي في الظلام، <strong>وطواط الظلام المحدّث بـ SO-CFAR</strong> لكشف الحوائط والأبواب المغلقة، قراءة النصوص وصلاحية الدواء، العملة المصرية، فحص البقع وتنسيق الملابس، ومدرب توجيه المرآة) + دعم الخادم المجاني ومفاتيح Gemini 3 و OpenRouter المجانية.
@@ -1887,7 +1887,8 @@ function parseVoiceCommand(raw) {
   p = exact(['ما هذا', 'ايه ده', 'ده ايه', 'عرفني', 'ما هذا الشيء'], 'identify'); if (p) return p;
   p = exact(['علمني', 'علم', 'احفظ ده', 'احفظ هذا', 'علمني شيئا'], 'teach'); if (p) return p;
   p = exact(['اشيائي', 'حاجاتي', 'ايه حاجاتي'], 'listMine'); if (p) return p;
-  const dl = n.match(/^(?:احذف|امسح|انسي)\s+(?:ثم\s+)?(.+)$/); if (dl) return { type: 'delMine', target: dl[1].trim() };
+  // يقبل الصيغتين اللتين قد يسمعهما المستخدم: «احذف المفتاح» و«احذف ثم المفتاح».
+  const dl = n.match(/^(?:احذف|امسح|انسي)(?:\s+ثم)?\s+(.+)$/); if (dl) return { type: 'delMine', target: dl[1].trim() };
   const s = n.match(/^(?:ابحث عن|دور علي|فين|اين|لاقيلي)\s+(.+)$/);
   if (s && s[1] && s[1].trim().length >= 2) return { type: 'find', target: s[1].trim() };
   return { type: 'question', question: String(raw || '').trim() };
@@ -2219,25 +2220,40 @@ async function identifyPersonal() {
 }
 async function listPersonal() {
   const items = await loadPersonalItems();
-  const m = items.length ? ('أشياؤك المحفوظة: ' + items.map(i => i.name).join('، ') + '. يمكنك تعديل الأسماء أو الحذف من نافذة إدارة أشيائي.') : 'لا توجد أشياء محفوظة.';
+  const m = items.length
+    ? ('أشياؤك المحفوظة: ' + items.map(i => i.name).join('، ') + '. لحذف شيء، قل: احذف ثم اسم الشيء.')
+    : 'لا توجد أشياء محفوظة.';
   updateStatus(m); speak(m);
-  openPersonalManager();
 }
 async function deletePersonal(nameRaw) {
   const items = await loadPersonalItems(), n = normalizeArabicCommand(nameRaw);
-  if (!n) { const m = 'قل احذف ثم اسم الشيء، أو استخدم نافذة إدارة أشيائي.'; updateStatus(m); speak(m); return; }
+  if (!n) { const m = 'لم أفهم اسم الشيء. قل: احذف ثم اسم الشيء.'; updateStatus(m); speak(m); return; }
   let matches = items.filter(it => normalizeArabicCommand(it.name) === n);
   if (!matches.length) matches = items.filter(it => normalizeArabicCommand(it.name).includes(n));
   if (matches.length !== 1) {
-    const m = matches.length ? 'وجدت أكثر من شيء بهذا الاسم الجزئي. افتح أشيائي واختر العنصر المطلوب.' : 'لم أجد شيئاً بهذا الاسم.';
+    const m = matches.length
+      ? 'وجدت أكثر من شيء بهذا الاسم. قل الاسم كاملاً كما سمعته في قائمة أشيائك.'
+      : 'لم أجد شيئاً بهذا الاسم. قل أشيائي لسماع الأسماء المحفوظة.';
     updateStatus(m); speak(m); return;
   }
   const nm = matches[0].name;
-  if (!window.confirm('هل تريد حذف «' + nm + '» نهائياً من أشيائك المحفوظة على هذا الجهاز؟')) return;
+  if (!getSpeechRecognitionConstructor()) {
+    const m = 'لا أستطيع تأكيد الحذف صوتياً لأن التعرف على الكلام غير متاح في هذا المتصفح. لم أحذف شيئاً.';
+    updateStatus(m); speak(m); return;
+  }
+  await speakWait('هل تريد حذف ' + nm + ' نهائياً من أشيائك المحفوظة؟ قل نعم للتأكيد أو لا للإلغاء.');
+  const decision = normalizeArabicCommand(await listenOnce());
+  if (!isYes(decision)) {
+    const m = decision && /^(لا|الغاء|إلغاء|مش|كلا|تراجع)$/.test(decision)
+      ? 'تم إلغاء الحذف. لم يتغير شيء.'
+      : 'لم يصلني تأكيد واضح. ألغيت الحذف ولم يتغير شيء.';
+    updateStatus(m); speak(m); return;
+  }
   const updatedItems = items.filter(it => it !== matches[0]);
   const ok = await idbSet('items', updatedItems);
   if (!ok) { const m = 'تعذر حذف العنصر من التخزين. لم يتم تأكيد الحذف.'; updateStatus(m); speak(m); return; }
-  personalItems = updatedItems; updatePersonalManager();
+  personalItems = updatedItems;
+  updatePersonalManager();
   const m = 'تم حذف ' + nm + ' من أشيائك المحفوظة.'; updateStatus(m); speak(m);
 }
 function openPersonalManager() {
